@@ -23,8 +23,8 @@ The current `/tables` screen follows the original 02 exports. The new proposal a
 `ask-on-risk`. Forecast ~600–900 authored lines; chain strategy for PRs is asked before opening PRs (local work-unit commits only).
 
 ## Tasks
-- [x] T1 Pure helpers + mock data test-first: occupancy summary (available / occupied / bill requested), table tile view model (total, elapsed "18 min" / "1 h 08 min", party size), search and area filter, list view rows, occupied-table detail (shared total, products grouped by order with status), draft order builder (add/remove products, quantities, note, total, assign to table updates the service day in memory). Route: delegated. Commit: see Progress.
-- [ ] T2 Board redesign (02): header, summary chips, search, Plano/Lista toggle, area tabs, table tiles, list view. Route: delegated.
+- [x] T1 Pure helpers + mock data test-first: occupancy summary (available / occupied / bill requested), table tile view model (total, elapsed "18 min" / "1 h 08 min", party size), search and area filter, list view rows, occupied-table detail (shared total, products grouped by order with status), draft order builder (add/remove products, quantities, note, total, assign to table updates the service day in memory). Route: delegated. Commit: 636caf9.
+- [x] T2 Board redesign (02): header, summary chips, search, Plano/Lista toggle, area tabs, table tiles, list view. Route: delegated. Commit: see Progress.
 - [ ] T3 Panels (02C, 02D): "Cargar pedido" panel and occupied-table quick detail, wired to the in-memory state ("Cobrar mesa" reuses the existing payment/close flow if one exists, otherwise closes in memory and records the deviation). Route: delegated.
 
 ## Acceptance criteria
@@ -44,6 +44,8 @@ lint, tsc, vitest, build.
   - `@/mocks/service-day` now also exports `getOpenSession`, `getSessionOrders`, `getActiveBillRequest`, `getOrderTotal`.
 - T1 evidence: RED `npx vitest run src/features/tables` → 3 files failed (missing `./table-service`, `./order-draft`, `./table-detail`); GREEN 68/68 in the folder on first implementation. Checks: `npm run lint` OK, `npx tsc --noEmit` OK, `npx vitest run` 45 files / 592 tests passed.
 - T1 deviations: no export data replaced the service day; values derive from it (Mesa 02 account $16.800 with orders #1046/#1050, not the 02D $14.300 with #1062/#1068; catalogue prices, e.g. Cappuccino $4.600 and Medialuna $3.900, not $3.800/$1.900). There is no product called "Extras" in the catalogue, so `Extras` groups the side categories. Staff-loaded orders use the staff member's name as `customer`.
+- T2 done (route: delegated writer). Headless comparison at 1440×900 of `/tables` against the 02 export showed the board (title, subtitle, live pill, summary chips, "Buscar mesa", Plano/Lista switch, floor label, tiles with total and "◷" time, zoom controls, space tabs) already matched from earlier work; the remaining 02 differences were the default selection and the tab position. Changes: the board now opens with no table selected (full-width plan, Mesa 05 is no longer preselected) and the space tabs are centered at the bottom of the plan for any plan width. The header action "Cargar pedido a mesa" lands with its panel in T3. Stored layout and table sizes keep driving the plan. Test-first exception: presentational change, no meaningful runnable RED; checked visually. Checks: `npm run lint` OK, `npx tsc --noEmit` OK, `npx vitest run` 45 files / 592 tests passed.
+- T2 deviations (02): shared sidebar and top bar kept ("Sofía M." session user, full navigation) instead of the export's reduced sidebar; tables keep their configured spaces (Salón shows its own tables; the export draws all twelve in "Salón principal") and stored coordinates (export spreads columns at 60/330/600/870 for the wide plan); floor label is the space name ("Salón"); summary counts, totals and times derive from the service day (2 disponibles / 5 ocupadas / 5 solicitan cuenta, "En vivo · 14:42:18", Mesa 02 "◷ 52 min"), not the export's 4/5/3, 10:42:18 and 18 min; tabs are centered (the export places them about 50px left of center).
 
 ## Next step
-T2.
+T3.

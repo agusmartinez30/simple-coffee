@@ -15,8 +15,8 @@ import { filterTables } from "./tables-view";
 
 /**
  * Forced variants: `empty` (no tables configured yet), `no-results` (search with no match),
- * `list` (the "Lista" view) and `terraza` (the Terraza plan). Only the plan of Salón with Mesa
- * 05 selected is in the 02 export.
+ * `list` (the "Lista" view) and `terraza` (the Terraza plan). Only the plan of Salón with no
+ * table selected is in the 02 export.
  */
 export const TABLES_FORCED_STATES = ["empty", "no-results", "list", "terraza"] as const;
 
@@ -43,9 +43,8 @@ export function TablesScreen() {
   const [view, setView] = useState<TablesView>(() => (forcedState === "list" ? "list" : "plan"));
   const [query, setQuery] = useState(() => (forcedState === "no-results" ? NO_RESULTS_QUERY : ""));
   const [transform, setTransform] = useState(DEFAULT_TRANSFORM);
-  const [selectedId, setSelectedId] = useState<string | null>(() =>
-    forcedState === "empty" || forcedState === "no-results" ? null : board.selectedTableId,
-  );
+  // The 02 board opens with no table selected, so the plan takes the whole width.
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const plan = getSpacePlan(spaceId, config, live, query);
   const matches = filterTables(live, { filter: "all", query });

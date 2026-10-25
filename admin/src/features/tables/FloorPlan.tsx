@@ -202,7 +202,7 @@ export function FloorPlan(props: FloorPlanProps) {
       <div
         role="tablist"
         aria-label="Espacios"
-        className="absolute bottom-[66px] left-[271px] flex gap-1 rounded-[9px] bg-surface p-1 outline-1 -outline-offset-[0.5px] outline-line"
+        className="absolute bottom-[66px] left-1/2 flex -translate-x-1/2 gap-1 rounded-[9px] bg-surface p-1 outline-1 -outline-offset-[0.5px] outline-line"
       >
         {props.tabs.map((tab) => {
           const active = tab.id === props.activeSpaceId;
