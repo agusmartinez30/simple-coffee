@@ -22,7 +22,11 @@ export {
 export {
   DELIVERED_BOARD_WINDOW_MINUTES,
   deriveTable,
+  getActiveBillRequest,
   getBestSellers,
+  getOpenSession,
+  getOrderTotal,
+  getSessionOrders,
   getBillRequestsBoard,
   getCollectionsHistory,
   getOrdersBoard,
