@@ -35,7 +35,7 @@ clear the site storage.
 | `/reset-password` | 11C · Reset Password |
 | `/verify` | 11D · Multi-Factor Verification |
 | `/` | 10A · Resumen general |
-| `/tables` | 02 · Mesas (live operation): floor plan per space (tables with chairs by capacity, live account and time seated, zoom and fit, space tabs), Plano / Lista switch, search, quick-detail panel; spaces, tables and positions come from the shared venue store |
+| `/tables` | 02 · Mesas (live operation): floor plan per space (tables with chairs by capacity, live account and time seated, zoom and fit, space tabs), Plano / Lista switch, search, "Cargar pedido" panel (02C: table selector, product search and quick categories, current order with kitchen note and total, "Asignar pedido") and quick-detail panel (02D: shared total, products grouped by order with kitchen status, "Cargar pedido / productos", "Cobrar mesa" with confirmation); loaded orders and charged tables update tiles, totals and summary in memory for the session (they do not reach other screens); spaces, tables and positions come from the shared venue store |
 | `/tables/management` | Gestión de mesas (no export, built from 02/09): space tabs with "Nuevo espacio", the active space's plan in edit mode (drag tables with snapping to an 8px grid and clamping, arrow keys move the focused table 8px / Shift 40px, overlapping drops are refused), side panel with the table form (09B fields plus shape; "Eliminar mesa" deletes only tables that never had a session, otherwise offers to disable) or the space form (name, icon, color, delete when empty) with the ordered space list (reorder); deep links `?table=<id>|new`, `?space=<id>|new` |
 | `/orders` | 03 · Gestión de pedidos (kanban, order drawer, cancel confirmation) |
 | `/bill-requests` | 04 · Solicitudes de cuenta (requests table, quick-detail drawer) |
@@ -54,7 +54,7 @@ clear the site storage.
 | `/forgot-password` | `sent` (generic confirmation) |
 | `/reset-password` | `mismatch`, `success` |
 | `/verify` | `error` (wrong code) |
-| `/tables` | `empty` (no tables), `no-results` (search for "Mesa 99"), `list` ("Lista" view), `terraza` (Terraza plan) |
+| `/tables` | `empty` (no tables), `no-results` (search for "Mesa 99"), `list` ("Lista" view), `terraza` (Terraza plan), `load-order` (02C: Cappuccino and Medialuna for Mesa 02), `detail` (02D: Mesa 02) |
 | `/tables/management` | `table-edit` (Mesa 07), `table-new`, `space-edit` (Salón renamed, unsaved), `space-new` ("Barra" typed), `delete-table` (Mesa 01 has history: offers to disable), `delete-space` (Patio has tables: blocked), `errors` (Mesa 07 renamed "Mesa 05" with capacity 0 after saving) |
 | `/tables/qr` | `detail` (09C: Mesa 07), `regenerate` (09F), `material` (09D: Mesa 07), `bulk-print` (09E); the old `edit`, `new`, `errors`, `space-edit`, `space-new` redirect to their Gestión de mesas variants |
 | `/orders` | `detail` (drawer of #1051), `cancel` (cancel dialog of #1051), `empty` (no orders), `no-results` (search for "9999") |

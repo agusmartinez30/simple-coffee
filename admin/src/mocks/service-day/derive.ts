@@ -111,11 +111,10 @@ export function deriveTable(day: ServiceDay, tableNumber: number): ManagedTable 
   };
 }
 
-export function getTablesBoard(day: ServiceDay, selectedTableId: string | null = "table-05"): TablesBoard {
+export function getTablesBoard(day: ServiceDay): TablesBoard {
   return {
     syncedAt: day.syncedAt,
     tables: day.tableNumbers.map((number) => deriveTable(day, number)),
-    selectedTableId,
   };
 }
 

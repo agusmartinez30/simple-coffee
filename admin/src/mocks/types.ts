@@ -96,8 +96,6 @@ export type TablesBoard = {
   /** "HH:MM:SS" of the last realtime update. */
   syncedAt: string;
   tables: ManagedTable[];
-  /** Table open in the quick-detail panel when the screen loads. */
-  selectedTableId: string | null;
 };
 
 /** Kitchen stage of an order in 03 · Gestión de pedidos; cancelled orders leave the board. */

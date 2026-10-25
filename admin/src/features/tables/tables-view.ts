@@ -126,22 +126,3 @@ export function getPaymentPreferenceLabel(table: ManagedTable): string | null {
 export function formatRealtimeLabel(syncedAt: string): string {
   return `En vivo · ${syncedAt}`;
 }
-
-function formatMinutesAgo(minutes: number | undefined): string {
-  if (minutes === undefined) return "—";
-  return minutes <= 0 ? "Ahora" : `Hace ${minutes} min`;
-}
-
-export type DetailStat = { label: string; value: string };
-
-/** "Panel Stats" of the quick-detail panel. */
-export function getTableDetailStats(table: ManagedTable): DetailStat[] {
-  return [
-    { label: "Pedidos confirmados", value: String(table.confirmedOrders) },
-    { label: "Pendientes en cocina", value: String(table.pendingKitchenOrders) },
-    {
-      label: "Solicitud recibida",
-      value: table.status === "bill-requested" ? formatMinutesAgo(table.billRequestedMinutesAgo) : "—",
-    },
-  ];
-}
