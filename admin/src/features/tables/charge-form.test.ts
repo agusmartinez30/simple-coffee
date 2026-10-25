@@ -1,11 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { PAYMENT_SETTINGS } from "@/mocks/payments";
+import { SERVICE_DAY } from "@/mocks/service-day";
 import {
   TIP_PERCENTS,
   canConfirmCharge,
   createChargeForm,
   getChargeMethodOptions,
   getChargeSummary,
+  getChargeView,
   getSuggestedMethod,
   parseTipAmount,
   resolveTip,
@@ -85,6 +87,47 @@ describe("getChargeSummary", () => {
   it("shows the subtotal, the tip and the total to collect", () => {
     expect(getChargeSummary(16800, 1680)).toEqual({ subtotal: "$16.800", tip: "$1.680", total: "$18.480" });
     expect(getChargeSummary(16800, 0)).toEqual({ subtotal: "$16.800", tip: "$0", total: "$16.800" });
+  });
+});
+
+describe("getChargeView", () => {
+  it("shows the table, its total, the enabled methods and the tip chips without a hint for a table that did not ask", () => {
+    const view = getChargeView(SERVICE_DAY, createChargeForm(2));
+    expect(view).toMatchObject({
+      label: "Mesa 02",
+      total: "$16.800",
+      methods: [
+        { id: "cash", label: "Efectivo" },
+        { id: "card", label: "Tarjeta" },
+        { id: "transfer", label: "Transferencia" },
+      ],
+      suggestedMethod: null,
+      preferenceHint: null,
+      percentTips: [
+        { value: 10, amount: "$1.680" },
+        { value: 15, amount: "$2.520" },
+      ],
+      tipInvalid: false,
+      summary: { subtotal: "$16.800", tip: "$0", total: "$16.800" },
+      canConfirm: false,
+    });
+  });
+
+  it("hints the customer's preference of a table that asked for the bill, without choosing it", () => {
+    const view = getChargeView(SERVICE_DAY, createChargeForm(10));
+    expect(view).toMatchObject({ suggestedMethod: "transfer", preferenceHint: "Pidió pagar por transferencia", canConfirm: false });
+  });
+
+  it("follows the chosen method and tip, and flags an invalid free amount", () => {
+    const form = { ...createChargeForm(2), method: "card" as const };
+    expect(getChargeView(SERVICE_DAY, { ...form, tip: { kind: "percent", value: 10 } })).toMatchObject({
+      summary: { subtotal: "$16.800", tip: "$1.680", total: "$18.480" },
+      canConfirm: true,
+    });
+    expect(getChargeView(SERVICE_DAY, { ...form, tip: { kind: "amount", text: "abc" } })).toMatchObject({
+      tipInvalid: true,
+      canConfirm: false,
+    });
   });
 });
 

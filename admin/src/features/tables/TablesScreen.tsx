@@ -6,8 +6,9 @@ import { Armchair } from "lucide-react";
 import { SERVICE_DAY } from "@/mocks/service-day";
 import { DEMO_STAFF } from "@/mocks/staff";
 import { useScreenState } from "@/shared/lib/use-screen-state";
-import { ConfirmDialog } from "@/shared/ui";
 import { useVenue } from "@/features/venue/venue-store";
+import { getChargeView } from "./charge-form";
+import { ChargeTableDialog } from "./ChargeTableDialog";
 import { FloorPlan } from "./FloorPlan";
 import { getLiveTables, getPlanSummary, getSpacePlan, getSpaceTabs, type PlanTransform } from "./floor-plan";
 import {
@@ -29,10 +30,10 @@ import { filterTables } from "./tables-view";
 /**
  * Forced variants: `empty` (no tables configured yet), `no-results` (search with no match),
  * `list` (the "Lista" view), `terraza` (the Terraza plan), `load-order` (02C: loading an order to
- * Mesa 02) and `detail` (02D: Mesa 02's quick detail). The 02 export is the plan of Salón with no
- * table selected.
+ * Mesa 02), `detail` (02D: Mesa 02's quick detail) and `charge` ("Cobrar Mesa 02" over its detail).
+ * The 02 export is the plan of Salón with no table selected.
  */
-export const TABLES_FORCED_STATES = ["empty", "no-results", "list", "terraza", "load-order", "detail"] as const;
+export const TABLES_FORCED_STATES = ["empty", "no-results", "list", "terraza", "load-order", "detail", "charge"] as const;
 
 /** Query that `?state=no-results` pre-fills: no table has that number. */
 const NO_RESULTS_QUERY = "Mesa 99";
@@ -50,7 +51,7 @@ export function TablesScreen() {
   const venue = useVenue();
   const { spaces } = venue;
   const [state, dispatch] = useReducer(tablesReducer, forcedState, (forced) =>
-    createTablesState(SERVICE_DAY, forced === "load-order" || forced === "detail" ? forced : null),
+    createTablesState(SERVICE_DAY, forced === "load-order" || forced === "detail" || forced === "charge" ? forced : null),
   );
   const config = useMemo(() => (forcedState === "empty" ? [] : venue.tables), [forcedState, venue.tables]);
   const live = useMemo(() => getLiveTables(config, state.day), [config, state.day]);
@@ -89,7 +90,7 @@ export function TablesScreen() {
 
   const { panel } = state;
   const detail = panel.kind === "detail" ? getTableDetail(state.day, panel.tableNumber) : null;
-  const chargeDetail = state.chargeTarget === null ? null : getTableDetail(state.day, state.chargeTarget.tableNumber);
+  const charge = state.chargeTarget;
 
   return (
     // The open panel keeps the export's column: 900px beside the quick detail, 820px beside "Cargar pedido".
@@ -187,12 +188,13 @@ export function TablesScreen() {
           }
         />
       )}
-      {chargeDetail && (
-        <ConfirmDialog
-          title={`¿Cobrar ${chargeDetail.label}?`}
-          description={`Se registra el cobro de ${chargeDetail.total} y la mesa queda libre para nuevos clientes.`}
-          confirmLabel="Cobrar mesa"
-          tone="primary"
+      {charge && (
+        <ChargeTableDialog
+          view={getChargeView(state.day, charge)}
+          method={charge.method}
+          tip={charge.tip}
+          onMethodChange={(method) => dispatch({ type: "charge-method", method })}
+          onTipChange={(tip) => dispatch({ type: "charge-tip", tip })}
           onCancel={() => dispatch({ type: "dismiss-charge" })}
           onConfirm={() => dispatch({ type: "confirm-charge", confirmedBy: DEMO_STAFF.name })}
         />

@@ -1,6 +1,7 @@
-import { PAYMENT_METHODS, getPaymentMethodLabel } from "@/mocks/service-day";
+import { PAYMENT_METHODS, REQUEST_MODES, deriveTable, getPaymentMethodLabel, type ServiceDay } from "@/mocks/service-day";
 import type { BillPaymentMethod, CollectionMethod, PaymentSettings } from "@/mocks/types";
 import { formatPrice } from "@/shared/lib/format-price";
+import { formatTableLabel } from "./tables-view";
 
 /**
  * "Cobrar mesa" form: staff chooses how the table pays and whether it leaves a tip before the
@@ -81,4 +82,41 @@ export function getChargeSummary(total: number, tip: number): ChargeSummary {
 /** "Registrar cobro" needs a method and a valid tip. */
 export function canConfirmCharge(form: ChargeForm, total: number): boolean {
   return form.method !== null && resolveTip(form.tip, total) !== null;
+}
+
+/** Everything the "Cobrar Mesa NN" dialog shows for the form of one table. */
+export type ChargeView = {
+  label: string;
+  /** Table account ("Subtotal"), formatted. */
+  total: string;
+  methods: ChargeMethodOption[];
+  /** Method the customer's bill request points at; highlighted, never preselected. */
+  suggestedMethod: CollectionMethod | null;
+  /** "Pidió pagar por transferencia" when the table asked for the bill. */
+  preferenceHint: string | null;
+  /** Amount each percentage chip resolves to for this table. */
+  percentTips: { value: TipPercent; amount: string }[];
+  /** "Otro monto" holds text that is not a valid amount. */
+  tipInvalid: boolean;
+  /** With an invalid free amount the tip counts as zero; the dialog shows the error instead. */
+  summary: ChargeSummary;
+  canConfirm: boolean;
+};
+
+export function getChargeView(day: ServiceDay, form: ChargeForm): ChargeView {
+  const table = deriveTable(day, form.tableNumber);
+  const total = table.accountTotal;
+  const tip = resolveTip(form.tip, total);
+  const mode = REQUEST_MODES.find((item) => item.id === table.paymentPreference);
+  return {
+    label: formatTableLabel(form.tableNumber),
+    total: formatPrice(total),
+    methods: getChargeMethodOptions(day.paymentSettings.settings),
+    suggestedMethod: getSuggestedMethod(table.paymentPreference),
+    preferenceHint: mode ? `Pidió pagar ${mode.label.toLowerCase()}` : null,
+    percentTips: TIP_PERCENTS.map((value) => ({ value, amount: formatPrice(resolveTip({ kind: "percent", value }, total) ?? 0) })),
+    tipInvalid: tip === null,
+    summary: getChargeSummary(total, tip ?? 0),
+    canConfirm: canConfirmCharge(form, total),
+  };
 }
