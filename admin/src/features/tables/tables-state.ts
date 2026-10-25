@@ -1,4 +1,6 @@
 import { deriveTable, type ServiceDay } from "@/mocks/service-day";
+import type { CollectionMethod } from "@/mocks/types";
+import { createChargeForm, resolveTip, type ChargeForm, type TipChoice } from "./charge-form";
 import {
   addProduct,
   canAssignDraft,
@@ -20,8 +22,8 @@ export type TablesPanel =
 export type TablesState = {
   day: ServiceDay;
   panel: TablesPanel;
-  /** Table waiting for the "Cobrar mesa" confirmation. */
-  chargeTarget: number | null;
+  /** "Cobrar mesa" form of the table being charged: method and tip still to confirm. */
+  chargeTarget: ChargeForm | null;
 };
 
 export type TablesAction =
@@ -35,16 +37,21 @@ export type TablesAction =
   /** `tableNumbers`: live tables of the venue configuration, which may include tables created this session. */
   | { type: "assign-order"; customer: string; tableNumbers: readonly number[] }
   | { type: "request-charge" }
+  | { type: "charge-method"; method: CollectionMethod }
+  | { type: "charge-tip"; tip: TipChoice }
   | { type: "dismiss-charge" }
   | { type: "confirm-charge"; confirmedBy: string };
 
-/** `?state=` variants of the panels: 02C (loading an order to Mesa 02) and 02D (Mesa 02's detail). */
-export type TablesPanelVariant = "load-order" | "detail";
+/**
+ * `?state=` variants of the panels on Mesa 02: 02C (loading an order), 02D (its detail) and the
+ * "Cobrar mesa" dialog over its detail.
+ */
+export type TablesPanelVariant = "load-order" | "detail" | "charge";
 
 const VARIANT_TABLE = 2;
 
 function initialPanel(variant: TablesPanelVariant | null): TablesPanel {
-  if (variant === "detail") return { kind: "detail", tableNumber: VARIANT_TABLE };
+  if (variant === "detail" || variant === "charge") return { kind: "detail", tableNumber: VARIANT_TABLE };
   if (variant === "load-order") {
     return { kind: "order", draft: addProduct(addProduct(createDraft(VARIANT_TABLE), "cappuccino"), "medialuna") };
   }
@@ -52,7 +59,11 @@ function initialPanel(variant: TablesPanelVariant | null): TablesPanel {
 }
 
 export function createTablesState(day: ServiceDay, variant: TablesPanelVariant | null = null): TablesState {
-  return { day, panel: initialPanel(variant), chargeTarget: null };
+  return {
+    day,
+    panel: initialPanel(variant),
+    chargeTarget: variant === "charge" ? createChargeForm(VARIANT_TABLE) : null,
+  };
 }
 
 /** Table highlighted on the plan: the one in the detail, or the target of the order being loaded. */
@@ -64,6 +75,10 @@ export function getSelectedTableNumber(state: TablesState): number | null {
 
 function updateDraft(state: TablesState, update: (draft: OrderDraft) => OrderDraft): TablesState {
   return state.panel.kind === "order" ? { ...state, panel: { kind: "order", draft: update(state.panel.draft) } } : state;
+}
+
+function updateCharge(state: TablesState, update: (form: ChargeForm) => ChargeForm): TablesState {
+  return state.chargeTarget ? { ...state, chargeTarget: update(state.chargeTarget) } : state;
 }
 
 /** Pure transitions of 02. Times come from the mock clock (`day.now`). */
@@ -100,14 +115,29 @@ export function tablesReducer(state: TablesState, action: TablesAction): TablesS
     case "request-charge": {
       if (state.panel.kind !== "detail") return state;
       const seated = deriveTable(state.day, state.panel.tableNumber).status !== "available";
-      return seated ? { ...state, chargeTarget: state.panel.tableNumber } : state;
+      return seated ? { ...state, chargeTarget: createChargeForm(state.panel.tableNumber) } : state;
     }
+    case "charge-method":
+      return updateCharge(state, (form) => ({ ...form, method: action.method }));
+    case "charge-tip":
+      return updateCharge(state, (form) => ({ ...form, tip: action.tip }));
     case "dismiss-charge":
       return { ...state, chargeTarget: null };
     case "confirm-charge": {
-      if (state.chargeTarget === null) return state;
+      const form = state.chargeTarget;
+      if (!form) return state;
+      const total = deriveTable(state.day, form.tableNumber).accountTotal;
+      const tip = resolveTip(form.tip, total);
+      // Same guard as `canConfirmCharge`: a chosen method and a valid tip.
+      if (form.method === null || tip === null) return state;
       return {
-        day: closeTable(state.day, { tableNumber: state.chargeTarget, at: state.day.now, confirmedBy: action.confirmedBy }),
+        day: closeTable(state.day, {
+          tableNumber: form.tableNumber,
+          at: state.day.now,
+          confirmedBy: action.confirmedBy,
+          method: form.method,
+          tip,
+        }),
         panel: { kind: "none" },
         chargeTarget: null,
       };

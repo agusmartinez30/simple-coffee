@@ -68,9 +68,11 @@ describe("assignOrder", () => {
 });
 
 describe("closeTable", () => {
-  it("collects a table that asked for the bill with its preference, finalizes the request and frees the table", () => {
+  const charge = { at, confirmedBy: "Sofía M.", method: "transfer", tip: 0 } as const;
+
+  it("collects a table that asked for the bill with the chosen method, finalizes the request and frees the table", () => {
     const account = deriveTable(day, 10).accountTotal;
-    const next = closeTable(day, { tableNumber: 10, at, confirmedBy: "Sofía M." });
+    const next = closeTable(day, { ...charge, tableNumber: 10 });
     expect(deriveTable(next, 10).status).toBe("available");
     expect(next.billRequests.find((request) => request.id === "SC-010")).toMatchObject({
       status: "finalized",
@@ -85,17 +87,36 @@ describe("closeTable", () => {
       confirmedBy: "Sofía M.",
       adjustments: 0,
     });
+    expect(collection).not.toHaveProperty("tip");
     const collected = getCollectionsHistory(next).collections.find((item) => item.tableNumber === 10 && item.time === at);
     expect(collected?.amount).toBe(account);
   });
 
-  it("collects a seated table without a bill request at the register, in cash", () => {
-    const next = closeTable(day, { tableNumber: 2, at, confirmedBy: "Sofía M." });
+  it("records the method staff chose even when it differs from the customer's preference", () => {
+    const next = closeTable(day, { ...charge, tableNumber: 10, method: "cash" });
+    expect(next.collections.at(-1)).toMatchObject({ method: "cash", customerPreference: "transfer" });
+  });
+
+  it("collects a seated table without a bill request as a register preference", () => {
+    const next = closeTable(day, { ...charge, tableNumber: 2, method: "card" });
     expect(deriveTable(next, 2).status).toBe("available");
-    expect(next.collections.at(-1)).toMatchObject({ method: "cash", customerPreference: "register" });
+    expect(next.collections.at(-1)).toMatchObject({ method: "card", customerPreference: "register" });
+  });
+
+  it("records the tip apart from the bill, so the collected amount stays the table's account", () => {
+    const account = deriveTable(day, 2).accountTotal;
+    const next = closeTable(day, { ...charge, tableNumber: 2, tip: 1500 });
+    expect(next.collections.at(-1)).toMatchObject({ tip: 1500, adjustments: 0 });
+    const collected = getCollectionsHistory(next).collections.find((item) => item.tableNumber === 2 && item.time === at);
+    expect(collected?.amount).toBe(account);
+  });
+
+  it("treats a negative tip as no tip", () => {
+    const next = closeTable(day, { ...charge, tableNumber: 2, tip: -200 });
+    expect(next.collections.at(-1)).not.toHaveProperty("tip");
   });
 
   it("leaves the day untouched for a free table", () => {
-    expect(closeTable(day, { tableNumber: 1, at, confirmedBy: "Sofía M." })).toBe(day);
+    expect(closeTable(day, { ...charge, tableNumber: 1 })).toBe(day);
   });
 });

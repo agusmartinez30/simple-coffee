@@ -89,16 +89,55 @@ describe("tablesReducer", () => {
     expect(tablesReducer(state, { type: "assign-order", customer: "Sofía M.", tableNumbers: live })).toBe(state);
   });
 
-  it("charges a seated table only after confirmation and frees it", () => {
+  it("opens the charge form of a seated table with no method chosen and no tip", () => {
     const detail = run(createTablesState(SERVICE_DAY), { type: "select-table", tableNumber: 10 });
     const asking = run(detail, { type: "request-charge" });
-    expect(asking.chargeTarget).toBe(10);
+    expect(asking.chargeTarget).toEqual({ tableNumber: 10, method: null, tip: { kind: "none" } });
     expect(run(asking, { type: "dismiss-charge" })).toMatchObject({ chargeTarget: null, day: SERVICE_DAY });
+  });
+
+  it("does not charge until a payment method is chosen", () => {
+    const asking = run(createTablesState(SERVICE_DAY), { type: "select-table", tableNumber: 10 }, { type: "request-charge" });
+    expect(tablesReducer(asking, { type: "confirm-charge", confirmedBy: "Sofía M." })).toBe(asking);
+  });
+
+  it("does not charge with an invalid tip amount", () => {
+    const asking = run(
+      createTablesState(SERVICE_DAY),
+      { type: "select-table", tableNumber: 10 },
+      { type: "request-charge" },
+      { type: "charge-method", method: "cash" },
+      { type: "charge-tip", tip: { kind: "amount", text: "mil" } },
+    );
+    expect(tablesReducer(asking, { type: "confirm-charge", confirmedBy: "Sofía M." })).toBe(asking);
+  });
+
+  it("charges with the chosen method and tip, and frees the table", () => {
+    const account = deriveTable(SERVICE_DAY, 10).accountTotal;
+    const asking = run(
+      createTablesState(SERVICE_DAY),
+      { type: "select-table", tableNumber: 10 },
+      { type: "request-charge" },
+      { type: "charge-method", method: "card" },
+      { type: "charge-tip", tip: { kind: "percent", value: 10 } },
+    );
+    expect(asking.chargeTarget).toEqual({ tableNumber: 10, method: "card", tip: { kind: "percent", value: 10 } });
 
     const charged = run(asking, { type: "confirm-charge", confirmedBy: "Sofía M." });
     expect(deriveTable(charged.day, 10).status).toBe("available");
-    expect(charged.day.collections.at(-1)).toMatchObject({ time: SERVICE_DAY.now, confirmedBy: "Sofía M." });
+    expect(charged.day.collections.at(-1)).toMatchObject({
+      time: SERVICE_DAY.now,
+      confirmedBy: "Sofía M.",
+      method: "card",
+      tip: Math.round(account * 0.1),
+    });
     expect(charged).toMatchObject({ chargeTarget: null, panel: { kind: "none" } });
+  });
+
+  it("ignores charge edits while no charge is open", () => {
+    const state = createTablesState(SERVICE_DAY);
+    expect(tablesReducer(state, { type: "charge-method", method: "cash" })).toBe(state);
+    expect(tablesReducer(state, { type: "charge-tip", tip: { kind: "none" } })).toBe(state);
   });
 
   it("never asks to charge a free table", () => {
@@ -106,8 +145,12 @@ describe("tablesReducer", () => {
     expect(tablesReducer(state, { type: "request-charge" })).toBe(state);
   });
 
-  it("builds the forced 02C and 02D variants on Mesa 02", () => {
+  it("builds the forced 02C, 02D and charge variants on Mesa 02", () => {
     expect(createTablesState(SERVICE_DAY, "detail").panel).toEqual({ kind: "detail", tableNumber: 2 });
+    expect(createTablesState(SERVICE_DAY, "charge")).toMatchObject({
+      panel: { kind: "detail", tableNumber: 2 },
+      chargeTarget: { tableNumber: 2, method: null, tip: { kind: "none" } },
+    });
     expect(createTablesState(SERVICE_DAY, "load-order").panel).toEqual({
       kind: "order",
       draft: {

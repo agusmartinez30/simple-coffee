@@ -89,7 +89,7 @@ export function TablesScreen() {
 
   const { panel } = state;
   const detail = panel.kind === "detail" ? getTableDetail(state.day, panel.tableNumber) : null;
-  const chargeDetail = state.chargeTarget === null ? null : getTableDetail(state.day, state.chargeTarget);
+  const chargeDetail = state.chargeTarget === null ? null : getTableDetail(state.day, state.chargeTarget.tableNumber);
 
   return (
     // The open panel keeps the export's column: 900px beside the quick detail, 820px beside "Cargar pedido".

@@ -210,6 +210,8 @@ export type ServiceCollection = {
   confirmedBy: string;
   /** "Descuentos y ajustes" in ARS; negative for discounts. */
   adjustments: number;
+  /** Tip in ARS recorded with the payment; kept apart from the bill amount. Absent without a tip. */
+  tip?: number;
 };
 
 export type PaymentMethodInfo = { id: AcceptedPaymentMethod; label: string };

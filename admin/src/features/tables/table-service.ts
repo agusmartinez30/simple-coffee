@@ -77,33 +77,36 @@ export function assignOrder(day: ServiceDay, { tableNumber, lines, note, custome
   };
 }
 
-/** How a collection is settled for each request mode (same mapping as the 05 history). */
-const METHOD_BY_PREFERENCE: Record<BillPaymentMethod, CollectionMethod> = {
-  table: "card",
-  register: "cash",
-  transfer: "transfer",
+export type CloseTableInput = {
+  tableNumber: number;
+  at: string;
+  confirmedBy: string;
+  /** "Medio de pago" staff chose; it may differ from the customer's preference. */
+  method: CollectionMethod;
+  /** Tip in ARS; zero or negative records no tip. */
+  tip: number;
 };
-
-export type CloseTableInput = { tableNumber: number; at: string; confirmedBy: string };
 
 /**
  * "Cobrar mesa": closes the open session at `at`, finalizes its bill request and records the
- * collection (its amount is derived from the session's orders). A table that did not ask for the
- * bill is collected at the register. Free tables leave the day unchanged.
+ * collection with the chosen method and tip (its amount is derived from the session's orders; the
+ * tip stays apart). A table that did not ask for the bill keeps a register preference. Free tables
+ * leave the day unchanged.
  */
-export function closeTable(day: ServiceDay, { tableNumber, at, confirmedBy }: CloseTableInput): ServiceDay {
+export function closeTable(day: ServiceDay, { tableNumber, at, confirmedBy, method, tip }: CloseTableInput): ServiceDay {
   const session = getOpenSession(day, tableNumber);
   if (!session) return day;
   const request = getActiveBillRequest(day, session.id);
-  const preference = request?.paymentPreference ?? "register";
+  const preference: BillPaymentMethod = request?.paymentPreference ?? "register";
   const collection: ServiceCollection = {
     number: Math.max(0, ...day.collections.map((item) => item.number)) + 1,
     sessionId: session.id,
     time: at,
-    method: METHOD_BY_PREFERENCE[preference],
+    method,
     customerPreference: preference,
     confirmedBy,
     adjustments: 0,
+    ...(tip > 0 && { tip: Math.round(tip) }),
   };
   return {
     ...day,
