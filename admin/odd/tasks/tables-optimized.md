@@ -25,7 +25,7 @@ The current `/tables` screen follows the original 02 exports. The new proposal a
 ## Tasks
 - [x] T1 Pure helpers + mock data test-first: occupancy summary (available / occupied / bill requested), table tile view model (total, elapsed "18 min" / "1 h 08 min", party size), search and area filter, list view rows, occupied-table detail (shared total, products grouped by order with status), draft order builder (add/remove products, quantities, note, total, assign to table updates the service day in memory). Route: delegated. Commit: 636caf9.
 - [x] T2 Board redesign (02): header, summary chips, search, Plano/Lista toggle, area tabs, table tiles, list view. Route: delegated. Commit: 514a16e.
-- [x] T3 Panels (02C, 02D): "Cargar pedido" panel and occupied-table quick detail, wired to the in-memory state ("Cobrar mesa" reuses the existing payment/close flow if one exists, otherwise closes in memory and records the deviation). Route: delegated. Commit: see Progress.
+- [x] T3 Panels (02C, 02D): "Cargar pedido" panel and occupied-table quick detail, wired to the in-memory state ("Cobrar mesa" reuses the existing payment/close flow if one exists, otherwise closes in memory and records the deviation). Route: delegated. Commit: 6b586c4.
 
 ## Acceptance criteria
 - `/tables` visually matches the 02, 02C and 02D exports at 1440×900 (with `?state=` variants for the panels if needed).
