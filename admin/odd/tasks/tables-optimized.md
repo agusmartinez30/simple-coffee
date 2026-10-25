@@ -26,6 +26,8 @@ The current `/tables` screen follows the original 02 exports. The new proposal a
 - [x] T1 Pure helpers + mock data test-first: occupancy summary (available / occupied / bill requested), table tile view model (total, elapsed "18 min" / "1 h 08 min", party size), search and area filter, list view rows, occupied-table detail (shared total, products grouped by order with status), draft order builder (add/remove products, quantities, note, total, assign to table updates the service day in memory). Route: delegated. Commit: 636caf9.
 - [x] T2 Board redesign (02): header, summary chips, search, Plano/Lista toggle, area tabs, table tiles, list view. Route: delegated. Commit: 514a16e.
 - [x] T3 Panels (02C, 02D): "Cargar pedido" panel and occupied-table quick detail, wired to the in-memory state ("Cobrar mesa" reuses the existing payment/close flow if one exists, otherwise closes in memory and records the deviation). Route: delegated. Commit: 6b586c4.
+- [ ] T4 Charge logic test-first: `closeTable` records the chosen payment method and an optional tip (`ServiceCollection.tip`, not added to the bill amount); pure `charge-form.ts` (enabled methods, customer preference hint without preselection, tip choice none / 10% / 15% / free amount, amount parsing, summary, confirm guard); reducer charge actions. Route: delegated (2+ non-trivial files).
+- [ ] T5 Charge dialog UI: `ChargeTableDialog` replaces the generic confirm ("Medio de pago", "Propina" chips + "Otro monto", summary, "Registrar cobro" disabled until a method is chosen); `?state=charge` variant; README. Route: delegated.
 
 ## Acceptance criteria
 - `/tables` visually matches the 02, 02C and 02D exports at 1440×900 (with `?state=` variants for the panels if needed).
@@ -51,6 +53,8 @@ lint, tsc, vitest, build.
 - T3 deviations (02C/02D): "Cobrar mesa" has no shared payment flow to reuse (04 has no finalize transition), so it closes in memory via `closeTable` with a confirmation dialog, and the effect stays on this screen (other screens read the seed day). Order panel: native `<select>` for "Mesa" with an "Elegí una mesa" option, a small "−" per current-order line to remove one unit, four best sellers under "Frecuentes" (export shows two), lists scroll inside the panel, empty/disabled states, and the panel fits its 400px (the export's content-box overflows to ~440px). "Ver menú completo →" links to `/menu/products`. Detail: shows `Entregado` for delivered orders (export shows only `Confirmado`/`En cocina`), payment preference tag for tables that asked for the bill, free-table copy and no "Cobrar mesa" for free tables. Header keeps "Cargar pedido a mesa" while the detail is open (02D hides it). Data deviations as in T1/T2 (Mesa 02 $16.800 with #1046/#1050 instead of $14.300 with #1062/#1068; catalogue prices).
 
 - RDD (committed-only vs main, exports excluded as untracked design input): assessed medium; the user declined review for this candidate (declined_this_candidate). Parent spot check: vitest 599/599.
+
+- User request (2026-10-25): "Cobrar mesa" must ask for the payment method before recording the collection and record tips when there are any; tip input chosen by the user: percentage chips plus free amount. Follow-up (out of scope): show the tip in `/collections`.
 
 ## Next step
 Human review; native review of the work-unit commits if RDD applies; chain strategy before opening PRs.
