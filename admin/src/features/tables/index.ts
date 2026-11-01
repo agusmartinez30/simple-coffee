@@ -11,8 +11,6 @@ export {
   getStatusBadge,
   getSummaryMetrics,
   getTableActivity,
-  getTableDetailStats,
-  type DetailStat,
   type SummaryMetric,
   type TableActivity,
   type TableFilter,

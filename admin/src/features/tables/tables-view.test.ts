@@ -14,7 +14,6 @@ import {
   getStatusBadge,
   getSummaryMetrics,
   getTableActivity,
-  getTableDetailStats,
 } from "./tables-view";
 
 const table = (overrides: Partial<ManagedTable> & Pick<ManagedTable, "number">): ManagedTable => ({
@@ -164,26 +163,6 @@ describe("card copy", () => {
   });
 });
 
-describe("getTableDetailStats", () => {
-  it("lists the quick-detail stats of a bill request", () => {
-    expect(getTableDetailStats(billRequested)).toEqual([
-      { label: "Pedidos confirmados", value: "3" },
-      { label: "Pendientes en cocina", value: "1" },
-      { label: "Solicitud recibida", value: "Hace 2 min" },
-    ]);
-  });
-
-  it("uses a dash when no bill was requested", () => {
-    expect(getTableDetailStats(occupied).at(-1)).toEqual({ label: "Solicitud recibida", value: "—" });
-  });
-
-  it("says 'Ahora' for a request received this minute", () => {
-    expect(getTableDetailStats({ ...billRequested, billRequestedMinutesAgo: 0 }).at(-1)?.value).toBe(
-      "Ahora",
-    );
-  });
-});
-
 /** Agreement with 03, 04 and 10A lives in `src/mocks/service-day/service-day.test.ts`. */
 describe("the 02 board of the service day", () => {
   const { tables } = TABLES_BOARD;
@@ -228,14 +207,7 @@ describe("the 02 board of the service day", () => {
     ]);
   });
 
-  it("opens Mesa 05 in the quick detail, with the wait 04 shows", () => {
-    const mesa05 = tables.find((item) => item.number === 5);
-    expect(mesa05 && getTableDetailStats(mesa05)).toEqual([
-      { label: "Pedidos confirmados", value: "3" },
-      { label: "Pendientes en cocina", value: "0" },
-      { label: "Solicitud recibida", value: "Hace 12 min" },
-    ]);
-    expect(TABLES_BOARD.selectedTableId).toBe(mesa05?.id);
+  it("shows the sync time of the service day in the realtime pill", () => {
     expect(formatRealtimeLabel(TABLES_BOARD.syncedAt)).toBe("En vivo · 14:42:18");
   });
 });

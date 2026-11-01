@@ -22,7 +22,11 @@ export {
 export {
   DELIVERED_BOARD_WINDOW_MINUTES,
   deriveTable,
+  getActiveBillRequest,
   getBestSellers,
+  getOpenSession,
+  getOrderTotal,
+  getSessionOrders,
   getBillRequestsBoard,
   getCollectionsHistory,
   getOrdersBoard,
@@ -35,7 +39,7 @@ export type * from "./types";
 
 /** 10A · Resumen general. */
 export const OVERVIEW_SNAPSHOT = getOverviewSnapshot(SERVICE_DAY);
-/** 02 · Gestión de mesas, with Mesa 05 open in the quick-detail panel. */
+/** 02 · Gestión de mesas. */
 export const TABLES_BOARD = getTablesBoard(SERVICE_DAY);
 /** 03 · Gestión de pedidos. */
 export const ORDERS_BOARD = getOrdersBoard(SERVICE_DAY);

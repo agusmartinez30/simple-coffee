@@ -1,18 +1,19 @@
 import clsx from "clsx";
 import type { LucideIcon } from "lucide-react";
-import type { TableTone } from "./tables-view";
+import type { DetailTone } from "./table-detail";
 
 /** Background, text, dot and selection-outline classes of each status tone. */
-export const TONE_CLASSES: Record<TableTone, { wash: string; text: string; dot: string; outline: string }> = {
+export const TONE_CLASSES: Record<DetailTone, { wash: string; text: string; dot: string; outline: string }> = {
   success: { wash: "bg-success-bg", text: "text-success", dot: "bg-success", outline: "outline-success" },
   brand: { wash: "bg-brand-wash", text: "text-brand", dot: "bg-brand", outline: "outline-brand" },
   warning: { wash: "bg-warning-bg", text: "text-warning", dot: "bg-warning", outline: "outline-warning" },
   danger: { wash: "bg-danger-bg", text: "text-danger", dot: "bg-danger", outline: "outline-danger" },
+  neutral: { wash: "bg-cream", text: "text-muted", dot: "bg-muted", outline: "outline-line" },
 };
 
 type StatusBadgeProps = {
   label: string;
-  tone: TableTone;
+  tone: DetailTone;
 };
 
 /** Rounded "Status Badge" / "Panel Status" pill with its "Badge Dot". */
@@ -34,7 +35,7 @@ export function StatusBadge({ label, tone }: StatusBadgeProps) {
 type InfoTagProps = {
   icon: LucideIcon;
   label: string;
-  tone: TableTone;
+  tone: DetailTone;
 };
 
 /** Square-ish "Card Alert" / "Payment Preference" tag with a 14px icon. */

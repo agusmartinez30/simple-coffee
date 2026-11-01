@@ -1,20 +1,30 @@
 import clsx from "clsx";
-import { LayoutGrid, List, Search } from "lucide-react";
+import { ClipboardPlus, LayoutGrid, List, Search } from "lucide-react";
 import type { PlanSummaryItem } from "./floor-plan";
 import { formatRealtimeLabel } from "./tables-view";
 
-/** "Floorplan Header": title, subtitle and the "Live Status" pill. */
-export function TablesHeader({ syncedAt }: { syncedAt: string }) {
+/** "Floorplan Header": title, subtitle, the "Live Status" pill and "Cargar pedido a mesa". */
+export function TablesHeader({ syncedAt, onLoadOrder }: { syncedAt: string; onLoadOrder: () => void }) {
   return (
     <header className="flex h-[58px] w-full shrink-0 items-center justify-between">
       <div className="flex flex-col gap-[3px]">
         <h2 className="text-[26px] font-bold whitespace-nowrap text-ink">Gestión de mesas</h2>
         <p className="text-[12px] whitespace-nowrap text-muted">Vista en tiempo real del salón y la ocupación</p>
       </div>
-      <p role="status" className="flex items-center gap-[7px] rounded-nav bg-success-bg px-2.5 py-[7px]">
-        <span aria-hidden="true" className="size-[7px] rounded-full bg-success" />
-        <span className="text-[11px] font-bold whitespace-nowrap text-success">{formatRealtimeLabel(syncedAt)}</span>
-      </p>
+      <div className="flex items-center gap-2.5">
+        <p role="status" className="flex items-center gap-[7px] rounded-nav bg-success-bg px-2.5 py-[7px]">
+          <span aria-hidden="true" className="size-[7px] rounded-full bg-success" />
+          <span className="text-[11px] font-bold whitespace-nowrap text-success">{formatRealtimeLabel(syncedAt)}</span>
+        </p>
+        <button
+          type="button"
+          onClick={onLoadOrder}
+          className="flex h-9 items-center gap-2 rounded-nav bg-ink px-3.5 text-[12px] font-bold whitespace-nowrap text-white hover:bg-ink/88"
+        >
+          <ClipboardPlus size={16} aria-hidden="true" />
+          Cargar pedido a mesa
+        </button>
+      </div>
     </header>
   );
 }
