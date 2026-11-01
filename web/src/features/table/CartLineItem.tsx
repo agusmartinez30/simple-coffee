@@ -2,7 +2,7 @@ import Image from "next/image";
 import { Pencil, Trash2 } from "lucide-react";
 import { formatPrice } from "@/shared/lib/format-price";
 import { QuantityStepper } from "@/shared/ui";
-import type { CartLineView } from "./order-lines";
+import type { CartLineView } from "./cart-lines";
 
 type CartLineItemProps = {
   item: CartLineView;
@@ -13,7 +13,7 @@ type CartLineItemProps = {
 
 const iconAction = "flex size-[26px] items-center justify-center rounded-full bg-cream text-ink";
 
-/** One product row of screen 04 · Mi pedido. */
+/** One product row of the pending order on screen 07 · Mi mesa. */
 export function CartLineItem({ item, onIncrement, onDecrement, onRemove }: CartLineItemProps) {
   return (
     <li className="flex h-28 w-full items-center gap-2.5 rounded-2xl bg-surface p-2.5">
@@ -23,7 +23,7 @@ export function CartLineItem({ item, onIncrement, onDecrement, onRemove }: CartL
       <div className="flex h-full min-w-0 flex-1 flex-col justify-between">
         <div className="flex items-start justify-between gap-2">
           <div className="flex min-w-0 flex-col gap-0.5">
-            <h2 className="truncate text-[12.5px] font-bold text-ink">{item.name}</h2>
+            <h3 className="truncate text-[12.5px] font-bold text-ink">{item.name}</h3>
             <p className="line-clamp-2 text-[9.5px] text-muted">{item.details}</p>
             {item.note ? (
               <p className="truncate font-display text-[11px] font-bold text-brand">

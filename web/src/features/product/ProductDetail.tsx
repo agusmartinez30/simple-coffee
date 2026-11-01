@@ -78,7 +78,7 @@ export function ProductDetail({ product }: ProductDetailProps) {
           <ArrowLeft size={19} aria-hidden="true" />
         </button>
         <p className="text-[14px] font-bold text-ink">Detalle del producto</p>
-        <Link href="/order" aria-label="Ver mi pedido" className={roundAction}>
+        <Link href="/table" aria-label="Ver mi pedido" className={roundAction}>
           <ShoppingBag size={18} aria-hidden="true" />
         </Link>
       </header>

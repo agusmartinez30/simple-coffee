@@ -3,12 +3,18 @@ import { getLineTotal, getOrderTotal } from "@/mocks/table";
 import type { OrderStatus, TableOrder } from "@/mocks/types";
 import { formatPrice } from "@/shared/lib/format-price";
 import { StatusPill, type StatusPillTone } from "@/shared/ui";
-import { ORDER_STATUS_LABELS } from "@/features/order";
 
 type OrderCardProps = {
   order: TableOrder;
   expanded: boolean;
   onToggle: () => void;
+};
+
+const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
+  sent: "Recibido",
+  preparing: "En preparación",
+  delivered: "Entregado",
+  cancelled: "Cancelado",
 };
 
 /** Order badge tones on screen 07 ("En preparación" is brand blue there). */
