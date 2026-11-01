@@ -10,6 +10,7 @@ import {
   tableSessionReducer,
   type PlaceOrderInput,
 } from "./table-session-reducer";
+import { PAYMENT_METHODS, PAYMENT_METHOD_LABELS } from "./payment-method";
 
 const input: PlaceOrderInput = {
   customerName: "  Sofía ",
@@ -23,7 +24,14 @@ const input: PlaceOrderInput = {
 
 describe("initialSession", () => {
   it("starts with the seed orders", () => {
-    expect(initialSession).toEqual({ orders: SEED_ORDERS });
+    expect(initialSession).toEqual({ orders: SEED_ORDERS, billRequest: null });
+  });
+});
+
+describe("payment methods", () => {
+  it("lists cash, transfer and debit with Spanish labels", () => {
+    expect(PAYMENT_METHODS).toEqual(["cash", "transfer", "debit"]);
+    expect(PAYMENT_METHOD_LABELS).toEqual({ cash: "Efectivo", transfer: "Transferencia", debit: "Débito" });
   });
 });
 
@@ -116,8 +124,34 @@ describe("tableSessionReducer", () => {
     expect(tableSessionReducer(changed, { type: "reset" })).toEqual(initialSession);
   });
 
+  it("requests the bill with a payment method and time", () => {
+    const state = tableSessionReducer(initialSession, { type: "requestBill", method: "cash", time: "13:10" });
+    expect(state.billRequest).toEqual({ method: "cash", time: "13:10" });
+    expect(state.orders).toBe(initialSession.orders);
+  });
+
+  it("overwrites the method when the bill is requested again", () => {
+    const requested = tableSessionReducer(initialSession, { type: "requestBill", method: "cash", time: "13:10" });
+    const changed = tableSessionReducer(requested, { type: "requestBill", method: "debit", time: "13:15" });
+    expect(changed.billRequest).toEqual({ method: "debit", time: "13:15" });
+  });
+
+  it("keeps the bill request when a new order is placed", () => {
+    const requested = tableSessionReducer(initialSession, { type: "requestBill", method: "transfer", time: "13:10" });
+    const state = tableSessionReducer(requested, {
+      type: "addOrder",
+      order: { ...SEED_ORDERS[0], id: "order-1043", number: "1043" },
+    });
+    expect(state.billRequest).toEqual({ method: "transfer", time: "13:10" });
+  });
+
+  it("clears the bill request on reset", () => {
+    const requested = tableSessionReducer(initialSession, { type: "requestBill", method: "cash", time: "13:10" });
+    expect(tableSessionReducer(requested, { type: "reset" }).billRequest).toBeNull();
+  });
+
   it("replaces the state on hydrate", () => {
-    const stored = { orders: [] };
+    const stored = { orders: [], billRequest: null };
     expect(tableSessionReducer(initialSession, { type: "hydrate", state: stored })).toBe(stored);
   });
 });
@@ -139,6 +173,20 @@ describe("parseStoredSession", () => {
     const stored = { id: `${id}-stored`, number, customerName, time, lines };
     const raw = JSON.stringify({ orders: [stored] });
     expect(parseStoredSession(raw).orders.map((order) => order.id)).toEqual(["order-1042-stored"]);
+  });
+
+  it("round-trips a bill request", () => {
+    const session = { orders: SEED_ORDERS, billRequest: { method: "debit" as const, time: "13:10" } };
+    expect(parseStoredSession(JSON.stringify(session))).toEqual(session);
+  });
+
+  it("drops a missing or invalid bill request but keeps the orders", () => {
+    const orderIds = SEED_ORDERS.map((order) => order.id);
+    for (const billRequest of [undefined, "cash", { method: "crypto", time: "13:10" }, { method: "cash" }]) {
+      const parsed = parseStoredSession(JSON.stringify({ orders: SEED_ORDERS, billRequest }));
+      expect(parsed.billRequest).toBeNull();
+      expect(parsed.orders.map((order) => order.id)).toEqual(orderIds);
+    }
   });
 
   it("falls back to the initial session on missing or malformed data", () => {
