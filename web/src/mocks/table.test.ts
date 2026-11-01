@@ -13,9 +13,13 @@ describe("table seed orders", () => {
     expect(getTableTotal(SEED_ORDERS)).toBe(13000);
   });
 
-  it("excludes cancelled orders from the shared total", () => {
+  it("counts every order towards the shared total", () => {
     const [agustin] = SEED_ORDERS;
-    const cancelled = { ...agustin, id: "order-1043", number: "1043", status: "cancelled" as const };
-    expect(getTableTotal([agustin, cancelled])).toBe(13000);
+    const second = { ...agustin, id: "order-1043", number: "1043" };
+    expect(getTableTotal([agustin, second])).toBe(26000);
+  });
+
+  it("seeds orders without a status", () => {
+    expect(SEED_ORDERS.every((order) => !("status" in order))).toBe(true);
   });
 });

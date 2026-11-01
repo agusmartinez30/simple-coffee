@@ -1,9 +1,7 @@
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { getLineTotal, getOrderTotal } from "@/mocks/table";
-import type { OrderStatus, TableOrder } from "@/mocks/types";
+import type { TableOrder } from "@/mocks/types";
 import { formatPrice } from "@/shared/lib/format-price";
-import { StatusPill, type StatusPillTone } from "@/shared/ui";
-import { ORDER_STATUS_LABELS } from "@/features/order";
 
 type OrderCardProps = {
   order: TableOrder;
@@ -11,15 +9,7 @@ type OrderCardProps = {
   onToggle: () => void;
 };
 
-/** Order badge tones on screen 07 ("En preparación" is brand blue there). */
-const STATUS_TONES: Record<OrderStatus, StatusPillTone> = {
-  sent: "neutral",
-  preparing: "info",
-  delivered: "success",
-  cancelled: "danger",
-};
-
-/** Expandable order of the table history: number, customer, time, status, lines and total. */
+/** Expandable order of the table history: number, customer, time, lines and total. */
 export function OrderCard({ order, expanded, onToggle }: OrderCardProps) {
   const total = getOrderTotal(order);
   const detailsId = `order-${order.id}-details`;
@@ -41,10 +31,7 @@ export function OrderCard({ order, expanded, onToggle }: OrderCardProps) {
           <span className="text-[12.5px] font-bold text-ink">#{order.number}</span>
           <span className="text-[9.5px] text-muted">{meta}</span>
         </span>
-        <span className="flex items-center gap-2">
-          <StatusPill tone={STATUS_TONES[order.status]}>{ORDER_STATUS_LABELS[order.status]}</StatusPill>
-          <Toggle size={18} className="text-muted" aria-hidden="true" />
-        </span>
+        <Toggle size={18} className="text-muted" aria-hidden="true" />
       </button>
       {expanded ? (
         <div id={detailsId} className="border-t border-line px-4 pt-1 pb-2">

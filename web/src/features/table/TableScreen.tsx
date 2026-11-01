@@ -2,13 +2,16 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Coffee, RefreshCw } from "lucide-react";
+import { ArrowRight, Coffee, RefreshCw, Send } from "lucide-react";
 import { TABLE } from "@/mocks/table";
+import { useCart } from "@/features/cart";
 import { getTableSummary, useTableSession } from "@/features/table-session";
-import { delay } from "@/shared/lib/delay";
+import { delay, formatClockTime } from "@/shared/lib/delay";
+import { formatPrice } from "@/shared/lib/format-price";
 import { useScreenState } from "@/shared/lib/use-screen-state";
 import {
   BottomNav,
+  formatItemCount,
   PrimaryButton,
   ScreenHeader,
   StateCard,
@@ -17,23 +20,27 @@ import {
 } from "@/shared/ui";
 import { AccountSummaryCard } from "./AccountSummaryCard";
 import { OrderCard } from "./OrderCard";
+import { PendingOrder } from "./PendingOrder";
 import { TableHeading } from "./TableHeading";
 import { TABLE_VIEW_COPY } from "./table-copy";
 import { TABLE_FORCED_STATES, getTableView } from "./table-view";
 
 const RETRY_DELAY_MS = 900;
+const SEND_DELAY_MS = 900;
 
 /**
- * Screen 07 · Mi mesa: read-only summary of the table orders. The variant follows the table
+ * Screen 07 · Mi mesa: the guest's pending order (sent from here) above the table orders. The variant follows the table
  * session; `?state=empty|error` forces it. It reads search params, so it must render inside
  * `<Suspense>`.
  */
 export function TableScreen() {
   const router = useRouter();
   const forced = useScreenState(TABLE_FORCED_STATES);
-  const { orders, hydrated } = useTableSession();
+  const { orders, hydrated, placeOrder } = useTableSession();
+  const cart = useCart();
   const [toggled, setToggled] = useState<ReadonlySet<string>>(new Set());
   const [retrying, setRetrying] = useState(false);
+  const [sending, setSending] = useState(false);
 
   const header = <ScreenHeader title="Mi mesa" backHref="/explore" table={TABLE.number} className="mt-2" />;
 
@@ -69,6 +76,22 @@ export function TableScreen() {
     router.replace("/table");
     setRetrying(false);
   }
+
+  async function handleSend() {
+    if (sending) return;
+    setSending(true);
+    await delay(SEND_DELAY_MS);
+    // Orders are placed from the table itself, so the table identifies who ordered.
+    const result = placeOrder({
+      customerName: `Mesa ${TABLE.number}`,
+      time: formatClockTime(new Date()),
+      lines: cart.lines,
+    });
+    if (result.ok) cart.clear();
+    setSending(false);
+  }
+
+  const canSend = view !== "error" && cart.hydrated && cart.itemCount > 0;
 
   const notice = copy.notice ? (
     <div className="flex min-h-[58px] w-full items-center gap-2.5 rounded-[13px] bg-brand-tint px-[13px] py-3 text-brand">
@@ -113,6 +136,8 @@ export function TableScreen() {
         </div>
         <AccountSummaryCard total={summary.total} orderCount={summary.orderCount} table={TABLE.number} />
 
+        {view === "error" ? null : <PendingOrder />}
+
         {view === "empty" ? (
           <StateCard variant="empty" icon={Coffee} title="Todavía no hay pedidos">
             Cuando alguien de la mesa confirme un pedido, aparecerá acá para todos.
@@ -124,14 +149,15 @@ export function TableScreen() {
           </>
         )}
 
-        {copy.note ? (
-          <p className={view === "open" ? "text-center text-[9px] text-muted" : "text-center text-[10px] text-muted"}>
-            {copy.note}
-          </p>
-        ) : null}
+        {copy.note ? <p className="text-center text-[10px] text-muted">{copy.note}</p> : null}
       </main>
 
       <StickyFooter className="flex flex-col gap-2 pt-[3px]!">
+        {canSend ? (
+          <PrimaryButton size="md" icon={Send} onClick={handleSend} loading={sending}>
+            Enviar pedido · {formatItemCount(cart.itemCount)} · {formatPrice(cart.subtotal)}
+          </PrimaryButton>
+        ) : null}
         {view === "empty" && copy.footer ? (
           <PrimaryButton href="/explore" icon={ArrowRight} iconPosition="end" className="h-[52px]! rounded-[26px]! text-[14px]!">
             {copy.footer.primaryLabel}

@@ -1,6 +1,6 @@
 import { getProductById } from "@/mocks/menu";
 import { SEED_ORDERS, buildOrderLine, getTableTotal } from "@/mocks/table";
-import type { Ars, OrderStatus, TableOrder } from "@/mocks/types";
+import type { Ars, TableOrder } from "@/mocks/types";
 
 export type TableSessionState = {
   orders: TableOrder[];
@@ -8,7 +8,6 @@ export type TableSessionState = {
 
 export type TableSessionAction =
   | { type: "addOrder"; order: TableOrder }
-  | { type: "setOrderStatus"; orderId: string; status: OrderStatus }
   | { type: "reset" }
   | { type: "hydrate"; state: TableSessionState };
 
@@ -32,7 +31,6 @@ export type BuildOrderResult =
   | { ok: true; order: TableOrder }
   | { ok: false; reason: "missing-name" | "empty" };
 
-const ORDER_STATUSES: readonly OrderStatus[] = ["sent", "preparing", "delivered", "cancelled"];
 const FIRST_ORDER_NUMBER = 1001;
 
 export const initialSession: TableSessionState = {
@@ -74,7 +72,6 @@ export function buildOrder(state: TableSessionState, input: PlaceOrderInput): Bu
       number,
       customerName,
       time: input.time,
-      status: "sent",
       lines,
       note: trimmed(input.note),
     },
@@ -89,13 +86,6 @@ export function tableSessionReducer(
     case "addOrder":
       if (state.orders.some((order) => order.id === action.order.id)) return state;
       return { ...state, orders: [...state.orders, action.order] };
-    case "setOrderStatus":
-      return {
-        ...state,
-        orders: state.orders.map((order) =>
-          order.id === action.orderId ? { ...order, status: action.status } : order,
-        ),
-      };
     case "reset":
       return initialSession;
     case "hydrate":
@@ -120,7 +110,6 @@ function isOrder(value: unknown): value is TableOrder {
     typeof order.number === "string" &&
     typeof order.customerName === "string" &&
     typeof order.time === "string" &&
-    ORDER_STATUSES.includes(order.status as OrderStatus) &&
     (order.note === undefined || typeof order.note === "string") &&
     Array.isArray(order.lines) &&
     order.lines.every((line: unknown) => {

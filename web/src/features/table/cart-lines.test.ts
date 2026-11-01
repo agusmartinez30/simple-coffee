@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { CartLine } from "@/features/cart";
-import { SEED_ORDERS } from "@/mocks/table";
-import { countOrderItems, formatUnits, getCartLineView } from "./order-lines";
+import { formatUnits, getCartLineView } from "./cart-lines";
 
 const line = (overrides: Partial<CartLine>): CartLine => ({
   id: "x",
@@ -29,7 +28,6 @@ describe("getCartLineView", () => {
       unitPrice: 5400,
       lineTotal: 5400,
       details: "Mediano · Leche de almendras",
-      summary: "Mediano · Leche de almendras",
       note: "Poco caliente",
     });
   });
@@ -40,17 +38,10 @@ describe("getCartLineView", () => {
       name: "Medialunas de manteca",
       lineTotal: 7600,
       details: "2 unidades · $3.800 c/u",
-      summary: "2 unidades",
     });
   });
 
   it("returns null for products that no longer exist", () => {
     expect(getCartLineView(line({ productId: "ghost" }))).toBeNull();
-  });
-});
-
-describe("countOrderItems", () => {
-  it("sums line quantities", () => {
-    expect(countOrderItems(SEED_ORDERS[0])).toBe(3);
   });
 });

@@ -20,7 +20,7 @@ export function formatItemCount(count: number): string {
 export function FloatingCartCta({
   itemCount,
   total,
-  href = "/order",
+  href = "/table",
   variant = "bag",
   className,
 }: FloatingCartCtaProps) {
