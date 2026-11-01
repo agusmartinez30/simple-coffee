@@ -18,7 +18,7 @@ export function CategoryResults({ category }: CategoryResultsProps) {
     <>
       <main className="flex flex-1 flex-col px-4 pt-2 pb-[164px]">
         <Link
-          href="/menu"
+          href="/explore"
           className="flex h-8 w-fit items-center gap-[7px] text-[10px] font-bold tracking-[0.8px] text-brand"
         >
           <ArrowLeft size={17} aria-hidden="true" />

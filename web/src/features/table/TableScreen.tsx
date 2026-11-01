@@ -36,7 +36,7 @@ export function TableScreen() {
   const [toggled, setToggled] = useState<ReadonlySet<string>>(new Set());
   const [retrying, setRetrying] = useState(false);
 
-  const header = <ScreenHeader title="Mi mesa" backHref="/menu" table={TABLE.number} className="mt-2" />;
+  const header = <ScreenHeader title="Mi mesa" backHref="/explore" table={TABLE.number} className="mt-2" />;
 
   if (!hydrated && !forced) {
     return (
@@ -144,7 +144,7 @@ export function TableScreen() {
 
       <StickyFooter className="flex flex-col gap-2 pt-[3px]!">
         {view === "empty" ? (
-          <PrimaryButton href="/menu" icon={ArrowRight} iconPosition="end" className="h-[52px]! rounded-[26px]! text-[14px]!">
+          <PrimaryButton href="/explore" icon={ArrowRight} iconPosition="end" className="h-[52px]! rounded-[26px]! text-[14px]!">
             {copy.footer.primaryLabel}
           </PrimaryButton>
         ) : (
@@ -163,7 +163,7 @@ export function TableScreen() {
               </PrimaryButton>
             )}
             {copy.footer.secondaryEnabled ? (
-              <SecondaryButton size="md" href="/menu" icon={Plus} className="flex-1">
+              <SecondaryButton size="md" href="/explore" icon={Plus} className="flex-1">
                 {copy.footer.secondaryLabel}
               </SecondaryButton>
             ) : (

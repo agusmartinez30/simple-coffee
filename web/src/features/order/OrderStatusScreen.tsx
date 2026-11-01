@@ -68,7 +68,7 @@ export function OrderStatusScreen({ orderId }: OrderStatusScreenProps) {
           <StateCard variant="empty" icon={SearchX} title="No encontramos este pedido">
             Puede que el enlace sea viejo o que el pedido se haya hecho desde otro dispositivo.
           </StateCard>
-          <PrimaryButton href="/menu" icon={ArrowRight} iconPosition="end">
+          <PrimaryButton href="/explore" icon={ArrowRight} iconPosition="end">
             Volver al menú
           </PrimaryButton>
         </main>
@@ -105,7 +105,7 @@ export function OrderStatusScreen({ orderId }: OrderStatusScreenProps) {
             Ver mi mesa
           </PrimaryButton>
           <SecondaryButton
-            href="/menu"
+            href="/explore"
             icon={Plus}
             className="h-[52px]! rounded-[26px]! text-[14.5px]!"
           >

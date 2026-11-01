@@ -28,7 +28,7 @@ export function OrderScreen() {
     <>
       <header className="flex flex-col gap-[7px] px-4">
         <div className="flex h-10 items-center justify-between">
-          <Link href="/menu" aria-label="Volver al menú" className={roundAction}>
+          <Link href="/explore" aria-label="Volver al menú" className={roundAction}>
             <ArrowLeft size={19} aria-hidden="true" />
           </Link>
           <h1 className="text-[16px] font-bold text-ink">Mi pedido</h1>
@@ -54,7 +54,7 @@ export function OrderScreen() {
           <StateCard variant="empty" icon={Coffee} title="Todavía no agregaste productos">
             Elegí algo del menú y aparecerá acá para que lo revises antes de enviarlo.
           </StateCard>
-          <PrimaryButton href="/menu" icon={ArrowRight} iconPosition="end">
+          <PrimaryButton href="/explore" icon={ArrowRight} iconPosition="end">
             Explorar el menú
           </PrimaryButton>
         </main>
@@ -86,7 +86,7 @@ export function OrderScreen() {
             </ul>
 
             <SecondaryButton
-              href="/menu"
+              href="/explore"
               icon={Plus}
               size="md"
               className="mt-2.5 h-[46px]! rounded-[23px]! bg-transparent! text-[13px]!"

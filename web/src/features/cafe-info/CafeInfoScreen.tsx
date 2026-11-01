@@ -42,7 +42,7 @@ export function CafeInfoScreen() {
       <ScreenHeader
         variant="centered"
         title={copy.title}
-        backHref="/menu"
+        backHref="/explore"
         backTransitionTypes={NAV_BACK}
       />
       <CafeCover

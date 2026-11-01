@@ -58,7 +58,7 @@ export function WelcomeScreen() {
             CAFÉ · BRUNCH · MERIENDAS
           </p>
           <Link
-            href="/menu"
+            href="/explore"
             className="flex h-[58px] w-full items-center justify-between rounded-[29px] bg-surface px-[18px] text-brand transition-colors active:bg-brand-soft"
           >
             <span className="text-[16px] font-bold">Explorar carta</span>

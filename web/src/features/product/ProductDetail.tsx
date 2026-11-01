@@ -63,7 +63,7 @@ export function ProductDetail({ product }: ProductDetailProps) {
       return;
     }
     addItem({ productId: product.id, choiceIds, note, quantity });
-    router.push("/menu");
+    router.push("/explore");
   }
 
   return (
@@ -72,7 +72,7 @@ export function ProductDetail({ product }: ProductDetailProps) {
         <button
           type="button"
           aria-label="Volver"
-          onClick={() => (window.history.length > 1 ? router.back() : router.push("/menu"))}
+          onClick={() => (window.history.length > 1 ? router.back() : router.push("/explore"))}
           className={roundAction}
         >
           <ArrowLeft size={19} aria-hidden="true" />

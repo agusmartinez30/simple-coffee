@@ -89,6 +89,6 @@ export const ORDER_OUTCOMES: Record<OrderOutcomeState, OrderOutcomeCopy> = {
     primaryIcon: BellRing,
     secondaryLabel: "Volver al menú",
     secondaryIcon: ArrowLeft,
-    secondaryHref: "/menu",
+    secondaryHref: "/explore",
   },
 };

@@ -1,4 +1,5 @@
-import { Search } from "lucide-react";
+import Link from "next/link";
+import { Info, Search } from "lucide-react";
 import { MOMENTS } from "@/mocks/moments";
 import { TABLE } from "@/mocks/table";
 import { CartFloatingCta } from "@/features/cart";
@@ -15,14 +16,23 @@ export function ExploreLanding() {
             <p className="text-[11px] font-bold tracking-[0.9px] text-brand uppercase">
               {TABLE.cafeName} · Mesa {TABLE.number}
             </p>
-            {/* Search is visual only in this prototype. */}
-            <button
-              type="button"
-              aria-label="Buscar"
-              className="flex size-[38px] items-center justify-center rounded-full bg-surface text-ink"
-            >
-              <Search size={19} aria-hidden="true" />
-            </button>
+            <div className="flex gap-2">
+              <Link
+                href="/info"
+                aria-label="Información del café"
+                className="flex size-[38px] items-center justify-center rounded-full bg-surface text-ink"
+              >
+                <Info size={19} aria-hidden="true" />
+              </Link>
+              {/* Search is visual only in this prototype. */}
+              <button
+                type="button"
+                aria-label="Buscar"
+                className="flex size-[38px] items-center justify-center rounded-full bg-surface text-ink"
+              >
+                <Search size={19} aria-hidden="true" />
+              </button>
+            </div>
           </div>
           <h1 className="font-display text-[34px] leading-8 font-bold text-ink">
             ¿Qué tenés ganas

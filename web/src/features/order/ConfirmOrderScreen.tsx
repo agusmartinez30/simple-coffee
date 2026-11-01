@@ -167,7 +167,7 @@ export function ConfirmOrderScreen() {
           {isEmpty ? (
             <p className="border-t border-line px-3.5 py-3 text-[11.5px] text-muted">
               Tu pedido está vacío.{" "}
-              <Link href="/menu" className="font-bold text-brand">
+              <Link href="/explore" className="font-bold text-brand">
                 Explorá el menú
               </Link>
             </p>

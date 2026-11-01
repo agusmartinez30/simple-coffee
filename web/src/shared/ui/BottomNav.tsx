@@ -1,11 +1,10 @@
 import Link from "next/link";
-import { Coffee, Compass, ConciergeBell, type LucideIcon } from "lucide-react";
+import { Compass, ConciergeBell, type LucideIcon } from "lucide-react";
 import clsx from "clsx";
 
-export type BottomNavTab = "inicio" | "explorar" | "mesa";
+export type BottomNavTab = "explorar" | "mesa";
 
 const TABS: { id: BottomNavTab; label: string; href: string; icon: LucideIcon }[] = [
-  { id: "inicio", label: "Inicio", href: "/menu", icon: Coffee },
   { id: "explorar", label: "Explorar", href: "/explore", icon: Compass },
   { id: "mesa", label: "Mi mesa", href: "/table", icon: ConciergeBell },
 ];
