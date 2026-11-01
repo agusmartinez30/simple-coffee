@@ -32,7 +32,7 @@ const RETRY_DELAY_MS = 900;
 export function TableScreen() {
   const router = useRouter();
   const forced = useScreenState(TABLE_FORCED_STATES);
-  const { orders, tableStatus, hydrated } = useTableSession();
+  const { orders, hydrated } = useTableSession();
   const [toggled, setToggled] = useState<ReadonlySet<string>>(new Set());
   const [retrying, setRetrying] = useState(false);
 
@@ -47,7 +47,7 @@ export function TableScreen() {
     );
   }
 
-  const view = getTableView({ tableStatus, orders }, forced);
+  const view = getTableView({ orders }, forced);
   const copy = TABLE_VIEW_COPY[view];
   const visibleOrders = view === "empty" ? [] : orders;
   const summary = getTableSummary(visibleOrders);

@@ -17,19 +17,14 @@ import {
   selectTableTotal,
   tableSessionReducer,
   type BuildOrderResult,
-  type PaymentPreference,
   type PlaceOrderInput,
-  type TableStatus,
 } from "./table-session-reducer";
 
 // Bump the version when the seed data changes, so stale sessions saved in browsers are dropped.
-const STORAGE_KEY = "cafe-central:table-session:v3";
-const PAYMENT_CONFIRMATION_DELAY_MS = 5000;
+const STORAGE_KEY = "cafe-central:table-session:v4";
 
 export type TableSessionContextValue = {
   orders: TableOrder[];
-  tableStatus: TableStatus;
-  paymentPreference: PaymentPreference | null;
   tableTotal: Ars;
   /** False until the persisted session has been restored after mount. */
   hydrated: boolean;
@@ -37,8 +32,6 @@ export type TableSessionContextValue = {
   /** Validates and adds the order; the result carries the created order or the reason. */
   placeOrder: (input: PlaceOrderInput) => BuildOrderResult;
   setOrderStatus: (orderId: string, status: OrderStatus) => void;
-  setTableStatus: (status: TableStatus) => void;
-  setPaymentPreference: (preference: PaymentPreference | null) => void;
   reset: () => void;
 };
 
@@ -62,7 +55,7 @@ function writeStoredSession(value: string) {
 }
 
 /**
- * Orders and table status shared by the order, table and bill screens. It starts from the
+ * Orders shared by the order and table screens. It starts from the
  * seed on the server and the first client render (hydration-safe), then restores the
  * persisted session after mount.
  */
@@ -92,22 +85,9 @@ export function TableSessionProvider({ children }: { children: ReactNode }) {
     writeStoredSession(JSON.stringify(state));
   }, [state]);
 
-  useEffect(() => {
-    // Simulates staff registering the payment from the admin panel shortly after the
-    // bill is requested; it runs on any screen, as a real backend update would.
-    if (state.tableStatus !== "requested") return;
-    const timer = window.setTimeout(
-      () => dispatch({ type: "setTableStatus", status: "closed" }),
-      PAYMENT_CONFIRMATION_DELAY_MS,
-    );
-    return () => window.clearTimeout(timer);
-  }, [state.tableStatus]);
-
   const value = useMemo<TableSessionContextValue>(
     () => ({
       orders: state.orders,
-      tableStatus: state.tableStatus,
-      paymentPreference: state.paymentPreference,
       tableTotal: selectTableTotal(state),
       hydrated,
       getOrder: (orderId) => state.orders.find((order) => order.id === orderId),
@@ -124,8 +104,6 @@ export function TableSessionProvider({ children }: { children: ReactNode }) {
         return result;
       },
       setOrderStatus: (orderId, status) => dispatch({ type: "setOrderStatus", orderId, status }),
-      setTableStatus: (status) => dispatch({ type: "setTableStatus", status }),
-      setPaymentPreference: (preference) => dispatch({ type: "setPaymentPreference", preference }),
       reset: () => dispatch({ type: "reset" }),
     }),
     [state, hydrated],

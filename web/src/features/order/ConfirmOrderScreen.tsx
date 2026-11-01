@@ -11,9 +11,7 @@ import { useTableSession } from "@/features/table-session";
 import { delay, formatClockTime } from "@/shared/lib/delay";
 import { formatPrice } from "@/shared/lib/format-price";
 import { PrimaryButton, formatItemCount } from "@/shared/ui";
-import { OrderOutcomeView } from "./OrderOutcomeView";
 import { getCartLineView, type CartLineView } from "./order-lines";
-import { ORDER_OUTCOMES } from "./order-outcomes";
 
 const SEND_DELAY_MS = 900;
 const MAX_NAME_LENGTH = 40;
@@ -26,13 +24,11 @@ const field =
 export function ConfirmOrderScreen() {
   const router = useRouter();
   const { lines, itemCount, subtotal, hydrated, clear } = useCart();
-  const { placeOrder, tableStatus } = useTableSession();
+  const { placeOrder } = useTableSession();
   const [name, setName] = useState("");
   const [note, setNote] = useState("");
   const [nameError, setNameError] = useState(false);
   const [sending, setSending] = useState(false);
-  const [blocked, setBlocked] = useState(false);
-  const [staffNotified, setStaffNotified] = useState(false);
 
   const items = lines.map(getCartLineView).filter((item): item is CartLineView => item !== null);
 
@@ -41,10 +37,6 @@ export function ConfirmOrderScreen() {
     if (sending) return;
     if (!name.trim()) {
       setNameError(true);
-      return;
-    }
-    if (tableStatus === "closed") {
-      setBlocked(true);
       return;
     }
     setSending(true);
@@ -61,19 +53,8 @@ export function ConfirmOrderScreen() {
       return;
     }
     setSending(false);
-    if (result.reason === "table-closed") setBlocked(true);
-    else if (result.reason === "missing-name") setNameError(true);
+    if (result.reason === "missing-name") setNameError(true);
     else router.push("/order");
-  }
-
-  if (blocked) {
-    return (
-      <OrderOutcomeView
-        copy={ORDER_OUTCOMES.closed}
-        onPrimary={() => setStaffNotified(true)}
-        feedback={staffNotified ? "Avisamos al personal. En breve se acercan a tu mesa." : undefined}
-      />
-    );
   }
 
   const isEmpty = hydrated && items.length === 0 && !sending;

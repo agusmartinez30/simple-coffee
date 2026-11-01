@@ -2,22 +2,13 @@ import { getProductById } from "@/mocks/menu";
 import { SEED_ORDERS, buildOrderLine, getTableTotal } from "@/mocks/table";
 import type { Ars, OrderStatus, TableOrder } from "@/mocks/types";
 
-export type TableStatus = "open" | "requested" | "attending" | "closed" | "reopened";
-
-/** How the table wants to pay the bill (screen 08). */
-export type PaymentPreference = "table" | "cashier" | "transfer";
-
 export type TableSessionState = {
   orders: TableOrder[];
-  tableStatus: TableStatus;
-  paymentPreference: PaymentPreference | null;
 };
 
 export type TableSessionAction =
   | { type: "addOrder"; order: TableOrder }
   | { type: "setOrderStatus"; orderId: string; status: OrderStatus }
-  | { type: "setTableStatus"; status: TableStatus }
-  | { type: "setPaymentPreference"; preference: PaymentPreference | null }
   | { type: "reset" }
   | { type: "hydrate"; state: TableSessionState };
 
@@ -39,17 +30,13 @@ export type PlaceOrderInput = {
 
 export type BuildOrderResult =
   | { ok: true; order: TableOrder }
-  | { ok: false; reason: "missing-name" | "empty" | "table-closed" };
+  | { ok: false; reason: "missing-name" | "empty" };
 
-const TABLE_STATUSES: readonly TableStatus[] = ["open", "requested", "attending", "closed", "reopened"];
-const PAYMENT_PREFERENCES: readonly PaymentPreference[] = ["table", "cashier", "transfer"];
 const ORDER_STATUSES: readonly OrderStatus[] = ["sent", "preparing", "delivered", "cancelled"];
 const FIRST_ORDER_NUMBER = 1001;
 
 export const initialSession: TableSessionState = {
   orders: SEED_ORDERS,
-  tableStatus: "open",
-  paymentPreference: null,
 };
 
 function trimmed(value: string | undefined): string | undefined {
@@ -64,7 +51,6 @@ export function getNextOrderNumber(orders: readonly TableOrder[]): string {
 
 /** Validates the checkout input and turns cart lines into an order priced from the menu. */
 export function buildOrder(state: TableSessionState, input: PlaceOrderInput): BuildOrderResult {
-  if (state.tableStatus === "closed") return { ok: false, reason: "table-closed" };
   const customerName = trimmed(input.customerName);
   if (!customerName) return { ok: false, reason: "missing-name" };
 
@@ -110,10 +96,6 @@ export function tableSessionReducer(
           order.id === action.orderId ? { ...order, status: action.status } : order,
         ),
       };
-    case "setTableStatus":
-      return { ...state, tableStatus: action.status };
-    case "setPaymentPreference":
-      return { ...state, paymentPreference: action.preference };
     case "reset":
       return initialSession;
     case "hydrate":
@@ -160,20 +142,9 @@ export function parseStoredSession(raw: string | null): TableSessionState {
   if (!raw) return initialSession;
   try {
     const parsed = JSON.parse(raw) as Partial<Record<keyof TableSessionState, unknown>>;
-    const { orders, tableStatus, paymentPreference } = parsed ?? {};
+    const orders = parsed?.orders;
     if (!Array.isArray(orders) || !orders.every(isOrder)) return initialSession;
-    if (!TABLE_STATUSES.includes(tableStatus as TableStatus)) return initialSession;
-    if (
-      paymentPreference !== null &&
-      !PAYMENT_PREFERENCES.includes(paymentPreference as PaymentPreference)
-    ) {
-      return initialSession;
-    }
-    return {
-      orders,
-      tableStatus: tableStatus as TableStatus,
-      paymentPreference: paymentPreference as PaymentPreference | null,
-    };
+    return { orders };
   } catch {
     return initialSession;
   }

@@ -22,10 +22,8 @@ const input: PlaceOrderInput = {
 };
 
 describe("initialSession", () => {
-  it("starts with the seed orders, an open table and no payment preference", () => {
-    expect(initialSession.orders).toEqual(SEED_ORDERS);
-    expect(initialSession.tableStatus).toBe("open");
-    expect(initialSession.paymentPreference).toBeNull();
+  it("starts with the seed orders", () => {
+    expect(initialSession).toEqual({ orders: SEED_ORDERS });
   });
 });
 
@@ -93,13 +91,6 @@ describe("buildOrder", () => {
       reason: "empty",
     });
   });
-
-  it("rejects new orders while the table account is closed", () => {
-    expect(buildOrder({ ...initialSession, tableStatus: "closed" }, input)).toEqual({
-      ok: false,
-      reason: "table-closed",
-    });
-  });
 });
 
 describe("tableSessionReducer", () => {
@@ -126,20 +117,17 @@ describe("tableSessionReducer", () => {
     expect(selectOrderById(state, "order-1042")?.status).toBe("cancelled");
   });
 
-  it("sets the table status and the payment preference", () => {
-    let state = tableSessionReducer(initialSession, { type: "setTableStatus", status: "requested" });
-    state = tableSessionReducer(state, { type: "setPaymentPreference", preference: "transfer" });
-    expect(state.tableStatus).toBe("requested");
-    expect(state.paymentPreference).toBe("transfer");
-  });
-
   it("resets to the initial session", () => {
-    const changed = tableSessionReducer(initialSession, { type: "setTableStatus", status: "closed" });
+    const changed = tableSessionReducer(initialSession, {
+      type: "setOrderStatus",
+      orderId: "order-1042",
+      status: "cancelled",
+    });
     expect(tableSessionReducer(changed, { type: "reset" })).toEqual(initialSession);
   });
 
   it("replaces the state on hydrate", () => {
-    const stored = { ...initialSession, tableStatus: "attending" as const };
+    const stored = { orders: [] };
     expect(tableSessionReducer(initialSession, { type: "hydrate", state: stored })).toBe(stored);
   });
 });
@@ -152,16 +140,14 @@ describe("selectOrderById", () => {
 
 describe("parseStoredSession", () => {
   it("round-trips a serialized session", () => {
-    const raw = JSON.stringify({ ...initialSession, paymentPreference: "cashier" });
-    expect(parseStoredSession(raw)).toEqual({ ...initialSession, paymentPreference: "cashier" });
+    const raw = JSON.stringify(initialSession);
+    expect(parseStoredSession(raw)).toEqual(initialSession);
   });
 
   it("falls back to the initial session on missing or malformed data", () => {
     expect(parseStoredSession(null)).toBe(initialSession);
     expect(parseStoredSession("{oops")).toBe(initialSession);
     expect(parseStoredSession(JSON.stringify({ orders: "x" }))).toBe(initialSession);
-    expect(
-      parseStoredSession(JSON.stringify({ ...initialSession, tableStatus: "exploded" })),
-    ).toBe(initialSession);
+    expect(parseStoredSession(JSON.stringify({ orders: [{ id: 1 }] }))).toBe(initialSession);
   });
 });
