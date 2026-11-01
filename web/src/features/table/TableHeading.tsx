@@ -4,7 +4,7 @@ type TableHeadingProps = {
   heading: TableViewCopy["heading"];
 };
 
-/** Heading of screen 07: editorial two-line heading (07, 07C) or a display title (07A, 07B, 07D). */
+/** Heading of screen 07: editorial two-line heading (07, 07C) or a display title (07D). */
 export function TableHeading({ heading }: TableHeadingProps) {
   if (heading.kind === "display") {
     return (

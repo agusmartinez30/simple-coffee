@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Coffee, Plus, ReceiptText, RefreshCw, WifiOff, Ban, BellRing } from "lucide-react";
+import { ArrowRight, Coffee, RefreshCw } from "lucide-react";
 import { TABLE } from "@/mocks/table";
 import { getTableSummary, useTableSession } from "@/features/table-session";
 import { delay } from "@/shared/lib/delay";
@@ -11,7 +11,6 @@ import {
   BottomNav,
   PrimaryButton,
   ScreenHeader,
-  SecondaryButton,
   StateCard,
   StatusPill,
   StickyFooter,
@@ -20,14 +19,14 @@ import { AccountSummaryCard } from "./AccountSummaryCard";
 import { OrderCard } from "./OrderCard";
 import { TableHeading } from "./TableHeading";
 import { TABLE_VIEW_COPY } from "./table-copy";
-import { mutedPrimary, mutedSecondary } from "./action-styles";
 import { TABLE_FORCED_STATES, getTableView } from "./table-view";
 
 const RETRY_DELAY_MS = 900;
 
 /**
- * Screen 07 · Mi mesa. The variant follows the table session; `?state=requested|closed|empty|error`
- * forces 07A–D. It reads search params, so it must render inside `<Suspense>`.
+ * Screen 07 · Mi mesa: read-only summary of the table orders. The variant follows the table
+ * session; `?state=empty|error` forces it. It reads search params, so it must render inside
+ * `<Suspense>`.
  */
 export function TableScreen() {
   const router = useRouter();
@@ -112,22 +111,12 @@ export function TableScreen() {
           </StatusPill>
           <span className="text-[9.5px] text-muted">{statusMeta}</span>
         </div>
-        <AccountSummaryCard
-          total={summary.total}
-          orderCount={summary.orderCount}
-          table={TABLE.number}
-          paymentLabel={copy.paymentLabel}
-        />
+        <AccountSummaryCard total={summary.total} orderCount={summary.orderCount} table={TABLE.number} />
 
         {view === "empty" ? (
           <StateCard variant="empty" icon={Coffee} title="Todavía no hay pedidos">
             Cuando alguien de la mesa confirme un pedido, aparecerá acá para todos.
           </StateCard>
-        ) : view === "open" ? (
-          <>
-            {history}
-            {notice}
-          </>
         ) : (
           <>
             {notice}
@@ -143,43 +132,18 @@ export function TableScreen() {
       </main>
 
       <StickyFooter className="flex flex-col gap-2 pt-[3px]!">
-        {view === "empty" ? (
+        {view === "empty" && copy.footer ? (
           <PrimaryButton href="/explore" icon={ArrowRight} iconPosition="end" className="h-[52px]! rounded-[26px]! text-[14px]!">
             {copy.footer.primaryLabel}
           </PrimaryButton>
-        ) : (
-          <div className="flex gap-2">
-            {view === "open" ? (
-              <PrimaryButton size="md" href="/table/bill" icon={ReceiptText} className="flex-1">
-                {copy.footer.primaryLabel}
-              </PrimaryButton>
-            ) : view === "error" ? (
-              <PrimaryButton size="md" icon={RefreshCw} onClick={handleRetry} loading={retrying} className="flex-1">
-                {copy.footer.primaryLabel}
-              </PrimaryButton>
-            ) : (
-              <PrimaryButton size="md" icon={BellRing} disabled className={`flex-1 ${mutedPrimary}`}>
-                {copy.footer.primaryLabel}
-              </PrimaryButton>
-            )}
-            {copy.footer.secondaryEnabled ? (
-              <SecondaryButton size="md" href="/explore" icon={Plus} className="flex-1">
-                {copy.footer.secondaryLabel}
-              </SecondaryButton>
-            ) : (
-              <SecondaryButton
-                size="md"
-                icon={view === "error" ? WifiOff : Ban}
-                disabled
-                className={`flex-1 ${mutedSecondary}`}
-              >
-                {copy.footer.secondaryLabel}
-              </SecondaryButton>
-            )}
-          </div>
-        )}
-        {copy.footer.hint ? <p className="text-center text-[9px] text-muted">{copy.footer.hint}</p> : null}
-        {view === "open" ? <BottomNav active="mesa" /> : null}
+        ) : null}
+        {view === "error" && copy.footer ? (
+          <PrimaryButton size="md" icon={RefreshCw} onClick={handleRetry} loading={retrying}>
+            {copy.footer.primaryLabel}
+          </PrimaryButton>
+        ) : null}
+        {copy.footer?.hint ? <p className="text-center text-[9px] text-muted">{copy.footer.hint}</p> : null}
+        {view === "error" ? null : <BottomNav active="mesa" />}
       </StickyFooter>
     </>
   );
