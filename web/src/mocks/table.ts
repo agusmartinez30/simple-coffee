@@ -45,11 +45,9 @@ export function getOrderTotal(order: TableOrder): Ars {
   return order.lines.reduce((sum, line) => sum + getLineTotal(line), 0);
 }
 
-/** Shared account total; cancelled orders are excluded. */
+/** Shared account total: every order of the table counts. */
 export function getTableTotal(orders: readonly TableOrder[]): Ars {
-  return orders
-    .filter((order) => order.status !== "cancelled")
-    .reduce((sum, order) => sum + getOrderTotal(order), 0);
+  return orders.reduce((sum, order) => sum + getOrderTotal(order), 0);
 }
 
 export const SEED_ORDERS: TableOrder[] = [
@@ -58,7 +56,6 @@ export const SEED_ORDERS: TableOrder[] = [
     number: "1042",
     customerName: "Agustín",
     time: "11:35",
-    status: "delivered",
     lines: [
       buildOrderLine({ productId: "cappuccino", quantity: 1, choiceIds: ["mediano", "almendras"] }),
       buildOrderLine({

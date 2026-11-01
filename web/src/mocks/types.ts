@@ -67,9 +67,6 @@ export type Moment = {
   filters: MomentFilter[];
 };
 
-/** `sent`: received by the café, not yet in preparation. */
-export type OrderStatus = "sent" | "preparing" | "delivered" | "cancelled";
-
 export type OrderLine = {
   productId: string;
   name: string;
@@ -87,7 +84,6 @@ export type TableOrder = {
   customerName: string;
   /** Local time as shown in the UI, e.g. "11:35". */
   time: string;
-  status: OrderStatus;
   lines: OrderLine[];
   /** General note for the whole order ("Notas generales"). */
   note?: string;

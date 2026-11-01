@@ -9,7 +9,7 @@ import {
   useRef,
   type ReactNode,
 } from "react";
-import type { Ars, OrderStatus, TableOrder } from "@/mocks/types";
+import type { Ars, TableOrder } from "@/mocks/types";
 import {
   buildOrder,
   initialSession,
@@ -21,7 +21,7 @@ import {
 } from "./table-session-reducer";
 
 // Bump the version when the seed data changes, so stale sessions saved in browsers are dropped.
-const STORAGE_KEY = "cafe-central:table-session:v4";
+const STORAGE_KEY = "cafe-central:table-session:v5";
 
 export type TableSessionContextValue = {
   orders: TableOrder[];
@@ -31,7 +31,6 @@ export type TableSessionContextValue = {
   getOrder: (orderId: string) => TableOrder | undefined;
   /** Validates and adds the order; the result carries the created order or the reason. */
   placeOrder: (input: PlaceOrderInput) => BuildOrderResult;
-  setOrderStatus: (orderId: string, status: OrderStatus) => void;
   reset: () => void;
 };
 
@@ -103,7 +102,6 @@ export function TableSessionProvider({ children }: { children: ReactNode }) {
         }
         return result;
       },
-      setOrderStatus: (orderId, status) => dispatch({ type: "setOrderStatus", orderId, status }),
       reset: () => dispatch({ type: "reset" }),
     }),
     [state, hydrated],

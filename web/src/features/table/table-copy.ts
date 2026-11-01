@@ -28,7 +28,6 @@ export const TABLE_VIEW_COPY: Record<TableView, TableViewCopy> = {
     statusIcon: CircleDot,
     statusMeta: "Actualizado en tiempo real",
     historyHint: "Tocá para ver el detalle",
-    note: "El total excluye productos cancelados.",
   },
   error: {
     heading: {

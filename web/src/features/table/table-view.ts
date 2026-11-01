@@ -14,6 +14,5 @@ type TableViewInput = {
 /** Picks the screen 07 variant from the table orders; a forced state always wins. */
 export function getTableView({ orders }: TableViewInput, forced: TableForcedState | null): TableView {
   if (forced) return forced;
-  const hasActiveOrders = orders.some((order) => order.status !== "cancelled");
-  return hasActiveOrders ? "open" : "empty";
+  return orders.length > 0 ? "open" : "empty";
 }

@@ -149,11 +149,7 @@ export function TableScreen() {
           </>
         )}
 
-        {copy.note ? (
-          <p className={view === "open" ? "text-center text-[9px] text-muted" : "text-center text-[10px] text-muted"}>
-            {copy.note}
-          </p>
-        ) : null}
+        {copy.note ? <p className="text-center text-[10px] text-muted">{copy.note}</p> : null}
       </main>
 
       <StickyFooter className="flex flex-col gap-2 pt-[3px]!">

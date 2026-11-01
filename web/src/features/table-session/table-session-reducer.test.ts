@@ -38,7 +38,7 @@ describe("getNextOrderNumber", () => {
 });
 
 describe("buildOrder", () => {
-  it("creates a sent order with menu prices, trimmed name and note", () => {
+  it("creates an order with menu prices, trimmed name and note", () => {
     const result = buildOrder(initialSession, input);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
@@ -48,8 +48,8 @@ describe("buildOrder", () => {
       customerName: "Sofía",
       note: "Todo junto, por favor.",
       time: "12:30",
-      status: "sent",
     });
+    expect(result.order).not.toHaveProperty("status");
     expect(result.order.lines).toEqual([
       {
         productId: "cappuccino",
@@ -108,20 +108,10 @@ describe("tableSessionReducer", () => {
     expect(state).toBe(initialSession);
   });
 
-  it("updates an order status", () => {
-    const state = tableSessionReducer(initialSession, {
-      type: "setOrderStatus",
-      orderId: "order-1042",
-      status: "cancelled",
-    });
-    expect(selectOrderById(state, "order-1042")?.status).toBe("cancelled");
-  });
-
   it("resets to the initial session", () => {
     const changed = tableSessionReducer(initialSession, {
-      type: "setOrderStatus",
-      orderId: "order-1042",
-      status: "cancelled",
+      type: "addOrder",
+      order: { ...SEED_ORDERS[0], id: "order-1043", number: "1043" },
     });
     expect(tableSessionReducer(changed, { type: "reset" })).toEqual(initialSession);
   });
@@ -142,6 +132,13 @@ describe("parseStoredSession", () => {
   it("round-trips a serialized session", () => {
     const raw = JSON.stringify(initialSession);
     expect(parseStoredSession(raw)).toEqual(initialSession);
+  });
+
+  it("accepts orders stored without a status", () => {
+    const { id, number, customerName, time, lines } = SEED_ORDERS[0];
+    const stored = { id: `${id}-stored`, number, customerName, time, lines };
+    const raw = JSON.stringify({ orders: [stored] });
+    expect(parseStoredSession(raw).orders.map((order) => order.id)).toEqual(["order-1042-stored"]);
   });
 
   it("falls back to the initial session on missing or malformed data", () => {
