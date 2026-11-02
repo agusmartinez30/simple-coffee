@@ -1,8 +1,8 @@
 "use client";
 
-import { useMemo, useReducer, useState } from "react";
-import { ClipboardList } from "lucide-react";
-import { ORDERS_BOARD, SERVICE_DAY } from "@/mocks/service-day";
+import { useMemo, useState } from "react";
+import { ClipboardList, LoaderCircle, RotateCw, TriangleAlert, X } from "lucide-react";
+import { Notice } from "@/shared/ui";
 import { useScreenState } from "@/shared/lib/use-screen-state";
 import { CancelOrderDialog } from "./CancelOrderDialog";
 import { KanbanBoard, type BoardEmptyState } from "./KanbanBoard";
@@ -13,56 +13,60 @@ import {
   countQuickFilters,
   filterBoardOrders,
   getAlertMetrics,
-  getDefaultSelectedOrderId,
+  keepRecentDelivered,
   sortNewestFirst,
   type QuickFilter,
 } from "./order-alerts";
-import {
-  createOrdersState,
-  getCancelTarget,
-  getSelectedOrder,
-  ordersReducer,
-  type OrdersState,
-} from "./orders-state";
+import { getCancelTarget, getSelectedOrder } from "./orders-state";
 import { groupOrdersByColumn } from "./orders-view";
+import { useOrdersBoard } from "./use-orders-board";
 
 /**
- * Forced variants: `detail` (panel on #1051, the received order of the original drawer
- * export), `cancel` (cancellation dialog of #1051), `empty` (no orders yet) and `no-results`
- * (search with no match). Without a variant the panel opens on the oldest delayed order.
+ * Forced variants: `empty` (no orders yet, without calling the API) and `no-results` (search with
+ * no match). Without a variant the panel opens on the oldest delayed order of the first load.
  */
-export const ORDERS_FORCED_STATES = ["detail", "cancel", "empty", "no-results"] as const;
-
-type ForcedState = (typeof ORDERS_FORCED_STATES)[number];
-
-/** Order the `detail` and `cancel` variants open, as in the original exports. */
-const FORCED_ORDER_ID = 1051;
+export const ORDERS_FORCED_STATES = ["empty", "no-results"] as const;
 
 /** Query that `?state=no-results` pre-fills: no order has that number. */
 const NO_RESULTS_QUERY = "9999";
 
-/** The service day's clock: elapsed times, delays and new status changes all use it. */
-const NOW = SERVICE_DAY.now;
-
-function initOrdersState(forcedState: ForcedState | null): OrdersState {
-  if (forcedState === "empty") return createOrdersState([]);
-  const orders = ORDERS_BOARD.orders;
-  const forced = forcedState === "detail" || forcedState === "cancel";
-  return createOrdersState(orders, {
-    selectedId: forced ? FORCED_ORDER_ID : getDefaultSelectedOrderId(orders, NOW),
-    cancelTargetId: forcedState === "cancel" ? FORCED_ORDER_ID : null,
-  });
+function BoardPlaceholder({ failed, onRetry }: { failed: boolean; onRetry: () => void }) {
+  return (
+    <div className="flex min-h-0 flex-1 items-center justify-center rounded-card bg-surface outline-1 -outline-offset-[0.5px] outline-line">
+      {failed ? (
+        <div className="flex w-full max-w-[420px] flex-col items-center gap-3">
+          <Notice tone="danger" icon={TriangleAlert} title="No pudimos cargar los pedidos">
+            Revisá tu conexión e intentá de nuevo.
+          </Notice>
+          <button
+            type="button"
+            onClick={onRetry}
+            className="flex h-10 items-center gap-1.5 rounded-[9px] px-3 text-[12px] font-bold text-brand hover:bg-brand-wash"
+          >
+            <RotateCw size={14} aria-hidden="true" />
+            Reintentar
+          </button>
+        </div>
+      ) : (
+        <p role="status" className="flex items-center gap-2 text-[13px] font-semibold text-muted">
+          <LoaderCircle size={16} aria-hidden="true" className="animate-spin" />
+          Cargando pedidos…
+        </p>
+      )}
+    </div>
+  );
 }
 
 /**
- * 03 · Gestión de pedidos (propuesta optimizada). Container: owns the in-memory orders (pure
- * `ordersReducer`: selection, status changes and two-step cancellation), search, quick filter
- * and toggles, fed by `ORDERS_BOARD`.
+ * 03 · Gestión de pedidos (propuesta optimizada). Container: `useOrdersBoard` owns the day's
+ * orders from the API (polling, advance, two-step cancellation); this screen owns search, quick
+ * filter and toggles.
  */
 export function OrdersScreen() {
   const forcedState = useScreenState(ORDERS_FORCED_STATES);
-  const [state, dispatch] = useReducer(ordersReducer, forcedState, initOrdersState);
-  const { orders, selectedId } = state;
+  const { state, now, dispatch, refresh, advance, confirmCancel } = useOrdersBoard({
+    offline: forcedState === "empty",
+  });
   const selectedOrder = getSelectedOrder(state);
   const cancelTarget = getCancelTarget(state);
   const [query, setQuery] = useState(() => (forcedState === "no-results" ? NO_RESULTS_QUERY : ""));
@@ -70,13 +74,12 @@ export function OrdersScreen() {
   const [showDelivered, setShowDelivered] = useState(true);
   const [alertsEnabled, setAlertsEnabled] = useState(true);
 
+  const orders = useMemo(() => keepRecentDelivered(state.orders, now), [state.orders, now]);
   const visibleOrders = useMemo(
-    () => filterBoardOrders(orders, { query, quickFilter, showDelivered, now: NOW }),
-    [orders, query, quickFilter, showDelivered],
+    () => filterBoardOrders(orders, { query, quickFilter, showDelivered, now }),
+    [orders, query, quickFilter, showDelivered, now],
   );
   const columns = groupOrdersByColumn(sortNewestFirst(visibleOrders), { showDelivered });
-
-  const advance = (id: number) => dispatch({ type: "advance", id, at: NOW });
 
   const clearFilters = () => {
     setQuery("");
@@ -103,39 +106,61 @@ export function OrdersScreen() {
     // The board and the panel fill the viewport under the 72px top bar; columns scroll on their own.
     <div className="flex h-[calc(100dvh-72px)] min-h-[640px] flex-col gap-3 px-7 pt-[22px] pb-7">
       <OrdersHeader enabled={alertsEnabled} onToggle={() => setAlertsEnabled((enabled) => !enabled)} />
-      <OrderMetrics metrics={getAlertMetrics(orders, NOW)} />
+      <OrderMetrics metrics={getAlertMetrics(orders, now)} />
       <OrderToolbar
         query={query}
         onQueryChange={setQuery}
         quickFilter={quickFilter}
         onQuickFilterChange={setQuickFilter}
-        delayedCount={countQuickFilters(orders, NOW).delayed}
+        delayedCount={countQuickFilters(orders, now).delayed}
         showDelivered={showDelivered}
         onShowDeliveredChange={setShowDelivered}
       />
-      <div className="flex min-h-0 w-full flex-1 gap-3">
-        <KanbanBoard
-          columns={columns}
-          emptyState={emptyState}
-          now={NOW}
-          selectedId={selectedId}
-          onSelect={(id) => dispatch({ type: "open-detail", id })}
-          onAdvance={advance}
-        />
-        <OrderDetailPanel
-          order={selectedOrder}
-          now={NOW}
-          onClose={() => dispatch({ type: "close-detail" })}
-          onAdvance={advance}
-          onRequestCancel={(id) => dispatch({ type: "request-cancel", id })}
-        />
-      </div>
+      {state.notice && (
+        <div className="flex w-full items-center gap-2">
+          <Notice tone="danger" icon={TriangleAlert} className="flex-1">
+            {state.notice}
+          </Notice>
+          <button
+            type="button"
+            aria-label="Cerrar aviso"
+            onClick={() => dispatch({ type: "dismiss-notice" })}
+            className="flex size-8 shrink-0 items-center justify-center rounded-nav text-muted hover:bg-cream"
+          >
+            <X size={14} aria-hidden="true" />
+          </button>
+        </div>
+      )}
+      {state.load === "ready" ? (
+        <div className="flex min-h-0 w-full flex-1 gap-3">
+          <KanbanBoard
+            columns={columns}
+            emptyState={emptyState}
+            now={now}
+            selectedId={state.selectedId}
+            pendingIds={state.pendingIds}
+            onSelect={(id) => dispatch({ type: "open-detail", id })}
+            onAdvance={advance}
+          />
+          <OrderDetailPanel
+            order={selectedOrder}
+            now={now}
+            pending={selectedOrder !== null && state.pendingIds.includes(selectedOrder.id)}
+            onClose={() => dispatch({ type: "close-detail" })}
+            onAdvance={advance}
+            onRequestCancel={(id) => dispatch({ type: "request-cancel", id })}
+          />
+        </div>
+      ) : (
+        <BoardPlaceholder failed={state.load === "failed"} onRetry={() => void refresh()} />
+      )}
       {cancelTarget && (
         <CancelOrderDialog
           key={cancelTarget.id}
           order={cancelTarget}
+          pending={state.pendingIds.includes(cancelTarget.id)}
           onDismiss={() => dispatch({ type: "dismiss-cancel" })}
-          onConfirm={(reason) => dispatch({ type: "confirm-cancel", reason, at: NOW })}
+          onConfirm={confirmCancel}
         />
       )}
     </div>

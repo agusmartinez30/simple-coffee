@@ -1,6 +1,5 @@
 import clsx from "clsx";
 import { CircleX, PanelRightOpen, Sparkles, TriangleAlert, X } from "lucide-react";
-import type { ManagedOrder } from "@/mocks/types";
 import {
   DELAY_TARGET_MINUTES,
   formatOrderLocation,
@@ -12,6 +11,7 @@ import {
 } from "./order-alerts";
 import { canCancelOrder, getStatusBadge } from "./orders-view";
 import { Badge, ORDER_TONE_CLASSES } from "./OrderTags";
+import type { Order } from "./order-types";
 
 const PANEL_CLASSES =
   "flex h-full min-h-0 w-[362px] shrink-0 flex-col gap-3.5 overflow-y-auto rounded-card bg-surface p-[18px] shadow-[-4px_0_18px_#10101016] outline-1 -outline-offset-[0.5px] outline-line";
@@ -21,18 +21,27 @@ function SectionTitle({ children }: { children: string }) {
 }
 
 type OrderDetailPanelProps = {
-  order: ManagedOrder | null;
+  order: Order | null;
   now: string;
+  /** An advance or cancel of the order is in flight: its actions stay disabled. */
+  pending?: boolean;
   onClose: () => void;
-  onAdvance: (id: number) => void;
-  onRequestCancel: (id: number) => void;
+  onAdvance: (id: string) => void;
+  onRequestCancel: (id: string) => void;
 };
 
 /**
  * "Drawer · Detalle Pedido": persistent panel to the right of the board with the selected
  * order's products, timeline, delay alert and actions. "Cerrar detalle" clears the selection.
  */
-export function OrderDetailPanel({ order, now, onClose, onAdvance, onRequestCancel }: OrderDetailPanelProps) {
+export function OrderDetailPanel({
+  order,
+  now,
+  pending = false,
+  onClose,
+  onAdvance,
+  onRequestCancel,
+}: OrderDetailPanelProps) {
   if (!order) {
     return (
       <aside aria-label="Detalle del pedido" className={clsx(PANEL_CLASSES, "items-center justify-center text-center")}>
@@ -53,7 +62,7 @@ export function OrderDetailPanel({ order, now, onClose, onAdvance, onRequestCanc
       <div className="flex w-full shrink-0 items-start justify-between">
         <div className="flex flex-col gap-1">
           <h2 id={titleId} className="text-[20px] leading-tight font-extrabold whitespace-nowrap text-ink">
-            Pedido #{order.id}
+            Pedido #{order.number}
           </h2>
           <Badge tone={badge.tone} className="uppercase">
             {badge.label}
@@ -126,8 +135,9 @@ export function OrderDetailPanel({ order, now, onClose, onAdvance, onRequestCanc
       {canCancelOrder(order) && (
         <button
           type="button"
+          disabled={pending}
           onClick={() => onRequestCancel(order.id)}
-          className="flex h-9 w-full shrink-0 items-center justify-center gap-[7px] rounded-nav bg-surface text-[11px] font-extrabold text-danger outline-1 -outline-offset-[0.5px] outline-danger hover:bg-danger-bg"
+          className="flex h-9 w-full shrink-0 items-center justify-center gap-[7px] rounded-nav bg-surface text-[11px] font-extrabold text-danger outline-1 -outline-offset-[0.5px] outline-danger hover:bg-danger-bg disabled:cursor-wait disabled:opacity-60"
         >
           <CircleX size={14} aria-hidden="true" className="shrink-0" />
           Cancelar pedido
@@ -136,9 +146,11 @@ export function OrderDetailPanel({ order, now, onClose, onAdvance, onRequestCanc
       {action && (
         <button
           type="button"
+          disabled={pending}
+          aria-busy={pending}
           onClick={() => onAdvance(order.id)}
           className={clsx(
-            "flex h-[42px] w-full shrink-0 items-center justify-center rounded-nav text-[12px] font-extrabold text-white",
+            "flex h-[42px] w-full shrink-0 items-center justify-center rounded-nav text-[12px] font-extrabold text-white disabled:cursor-wait disabled:opacity-60",
             ORDER_TONE_CLASSES[action.tone].solid,
           )}
         >

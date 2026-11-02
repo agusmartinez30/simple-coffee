@@ -2,21 +2,23 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import { ChevronDown, ShieldCheck, TriangleAlert } from "lucide-react";
-import type { CancellationReason, ManagedOrder } from "@/mocks/types";
 import { formatOrderLocation } from "./order-alerts";
+import type { CancellationReason, Order } from "./order-types";
 import { CANCELLATION_REASONS } from "./orders-view";
 
 type CancelOrderDialogProps = {
-  order: ManagedOrder;
+  order: Order;
+  /** The cancellation is in flight: confirming again is disabled until the API answers. */
+  pending?: boolean;
   onDismiss: () => void;
   onConfirm: (reason: CancellationReason) => void;
 };
 
 /**
  * "Cancellation Confirmation · #NNNN": modal over the whole screen. Nothing changes until
- * "Confirmar cancelación"; "Volver", Escape or the backdrop dismiss it.
+ * "Confirmar cancelación" and the API answers; "Volver", Escape or the backdrop dismiss it.
  */
-export function CancelOrderDialog({ order, onDismiss, onConfirm }: CancelOrderDialogProps) {
+export function CancelOrderDialog({ order, pending = false, onDismiss, onConfirm }: CancelOrderDialogProps) {
   const [reason, setReason] = useState<CancellationReason>(CANCELLATION_REASONS[0].id);
   const backRef = useRef<HTMLButtonElement>(null);
   const titleId = useId();
@@ -48,7 +50,7 @@ export function CancelOrderDialog({ order, onDismiss, onConfirm }: CancelOrderDi
           <TriangleAlert size={20} aria-hidden="true" />
         </span>
         <h2 id={titleId} className="text-[20px] font-bold text-ink">
-          Cancelar pedido #{order.id}
+          Cancelar pedido #{order.number}
         </h2>
         <p className="text-[12px] font-semibold text-muted">{formatOrderLocation(order)}</p>
         <p id={descriptionId} className="w-full text-[12px]/[17px] text-muted">
@@ -84,10 +86,12 @@ export function CancelOrderDialog({ order, onDismiss, onConfirm }: CancelOrderDi
           </button>
           <button
             type="button"
+            disabled={pending}
+            aria-busy={pending}
             onClick={() => onConfirm(reason)}
-            className="flex h-[42px] flex-1 items-center justify-center rounded-[9px] bg-danger text-[12px] font-bold text-white hover:bg-danger/92"
+            className="flex h-[42px] flex-1 items-center justify-center rounded-[9px] bg-danger text-[12px] font-bold text-white hover:bg-danger/92 disabled:cursor-wait disabled:opacity-60"
           >
-            Confirmar cancelación
+            {pending ? "Cancelando…" : "Confirmar cancelación"}
           </button>
         </div>
       </div>

@@ -3,28 +3,30 @@
 import { useEffect, useRef, useState, type RefObject } from "react";
 import clsx from "clsx";
 import { CornerDownRight, PanelRightOpen, SearchX, type LucideIcon } from "lucide-react";
-import type { ManagedOrder } from "@/mocks/types";
 import { formatOrderLocation, getElapsedBadge, getItemNote, isNewOrder } from "./order-alerts";
 import { getPrimaryAction, type OrderColumn, type OrderColumnId } from "./orders-view";
 import { Badge, ORDER_TONE_CLASSES } from "./OrderTags";
+import type { Order } from "./order-types";
 
 type OrderCardProps = {
-  order: ManagedOrder;
+  order: Order;
   now: string;
   selected: boolean;
-  onSelect: (id: number) => void;
-  onAdvance: (id: number) => void;
+  /** An advance or cancel of this order is in flight. */
+  pending: boolean;
+  onSelect: (id: string) => void;
+  onAdvance: (id: string) => void;
 };
 
 /** "Pedido #NNNN": kitchen card. The whole card selects the order for the detail panel. */
-function OrderCard({ order, now, selected, onSelect, onAdvance }: OrderCardProps) {
+function OrderCard({ order, now, selected, pending, onSelect, onAdvance }: OrderCardProps) {
   const action = getPrimaryAction(order);
   const elapsed = getElapsedBadge(order, now);
   const fresh = isNewOrder(order, now);
 
   return (
     <article
-      aria-label={`Pedido #${order.id}`}
+      aria-label={`Pedido #${order.number}`}
       className={clsx(
         "relative flex w-full shrink-0 flex-col gap-2.5 rounded-[10px] bg-surface p-3",
         selected
@@ -43,7 +45,7 @@ function OrderCard({ order, now, selected, onSelect, onAdvance }: OrderCardProps
               onClick={() => onSelect(order.id)}
               className="text-left after:absolute after:inset-0 after:rounded-[10px] focus-visible:outline-none focus-visible:after:outline-2 focus-visible:after:outline-brand"
             >
-              Pedido #{order.id}
+              Pedido #{order.number}
             </button>
           </h3>
           <p className="text-[12px] font-bold text-brand">{formatOrderLocation(order)}</p>
@@ -74,9 +76,11 @@ function OrderCard({ order, now, selected, onSelect, onAdvance }: OrderCardProps
         {action ? (
           <button
             type="button"
+            disabled={pending}
+            aria-busy={pending}
             onClick={() => onAdvance(order.id)}
             className={clsx(
-              "relative z-[1] flex h-[34px] flex-1 items-center justify-center rounded-[7px] text-[11px] font-extrabold whitespace-nowrap text-white",
+              "relative z-[1] flex h-[34px] flex-1 items-center justify-center rounded-[7px] text-[11px] font-extrabold whitespace-nowrap text-white disabled:cursor-wait disabled:opacity-60",
               ORDER_TONE_CLASSES[action.tone].solid,
             )}
           >
@@ -89,7 +93,7 @@ function OrderCard({ order, now, selected, onSelect, onAdvance }: OrderCardProps
         )}
         <button
           type="button"
-          aria-label={`Ver detalle del pedido #${order.id}`}
+          aria-label={`Ver detalle del pedido #${order.number}`}
           onClick={() => onSelect(order.id)}
           className="relative z-[1] flex size-[34px] shrink-0 items-center justify-center rounded-[7px] text-muted outline-1 -outline-offset-[0.5px] outline-line hover:bg-cream"
         >
@@ -126,13 +130,14 @@ function useMoreBelow(ref: RefObject<HTMLElement | null>): boolean {
   return moreBelow;
 }
 
-type KanbanColumnProps = Omit<OrderCardProps, "order" | "selected"> & {
+type KanbanColumnProps = Omit<OrderCardProps, "order" | "selected" | "pending"> & {
   column: OrderColumn;
-  selectedId: number | null;
+  selectedId: string | null;
+  pendingIds: readonly string[];
 };
 
 /** "Columna · …": tinted column with its dot, title, count and scrolling cards. */
-function KanbanColumn({ column, selectedId, ...cardProps }: KanbanColumnProps) {
+function KanbanColumn({ column, selectedId, pendingIds, ...cardProps }: KanbanColumnProps) {
   const listRef = useRef<HTMLDivElement>(null);
   const moreBelow = useMoreBelow(listRef);
   const tone = ORDER_TONE_CLASSES[column.tone];
@@ -159,7 +164,13 @@ function KanbanColumn({ column, selectedId, ...cardProps }: KanbanColumnProps) {
       </div>
       <div ref={listRef} className="-m-1 flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto p-1">
         {column.orders.map((order) => (
-          <OrderCard key={order.id} order={order} selected={order.id === selectedId} {...cardProps} />
+          <OrderCard
+            key={order.id}
+            order={order}
+            selected={order.id === selectedId}
+            pending={pendingIds.includes(order.id)}
+            {...cardProps}
+          />
         ))}
       </div>
       {moreBelow && (

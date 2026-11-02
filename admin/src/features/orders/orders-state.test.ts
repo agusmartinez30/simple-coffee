@@ -1,74 +1,155 @@
 import { describe, expect, it } from "vitest";
-import { ORDERS_BOARD } from "@/mocks/service-day";
+import { MOCK_BOARD, byNumber } from "./order-fixtures";
+import type { Order } from "./order-types";
 import { countOrdersByColumn } from "./orders-view";
 import {
   createOrdersState,
   getCancelTarget,
   getSelectedOrder,
+  isOrderPending,
   ordersReducer,
+  type OrdersState,
 } from "./orders-state";
 
-const initial = createOrdersState(ORDERS_BOARD.orders);
+const initial = createOrdersState(MOCK_BOARD);
+const o1051 = byNumber(MOCK_BOARD, 1051);
+const o1052 = byNumber(MOCK_BOARD, 1052);
+
+/** The copy of an order the API answers after a change. */
+const changed = (order: Order, overrides: Partial<Order>): Order => ({
+  ...order,
+  updatedAt: "2026-11-02T16:00:00.000Z",
+  ...overrides,
+});
 
 describe("createOrdersState", () => {
-  it("starts with nothing open unless asked", () => {
+  it("starts loading with nothing open, or ready with given orders", () => {
+    const loading = createOrdersState();
+    expect(loading.load).toBe("loading");
+    expect(loading.orders).toEqual([]);
+    expect(initial.load).toBe("ready");
     expect(initial.selectedId).toBeNull();
     expect(initial.cancelTargetId).toBeNull();
-    const forced = createOrdersState(ORDERS_BOARD.orders, { selectedId: 1051, cancelTargetId: 1051 });
-    expect(getSelectedOrder(forced)?.id).toBe(1051);
-    expect(getCancelTarget(forced)?.id).toBe(1051);
+    expect(initial.pendingIds).toEqual([]);
+    expect(initial.notice).toBeNull();
   });
 });
 
-describe("ordersReducer", () => {
-  it("selects and clears the detail panel, ignoring unknown orders", () => {
-    const open = ordersReducer(initial, { type: "open-detail", id: 1052 });
-    expect(getSelectedOrder(open)?.id).toBe(1052);
-    expect(ordersReducer(open, { type: "close-detail" }).selectedId).toBeNull();
-    expect(ordersReducer(initial, { type: "open-detail", id: 1 })).toBe(initial);
+describe("loading from the API", () => {
+  it("opens the panel on the default order of the first load only", () => {
+    const first = ordersReducer(createOrdersState(), { type: "loaded", orders: MOCK_BOARD, defaultSelectedId: o1051.id });
+    expect(first.load).toBe("ready");
+    expect(getSelectedOrder(first)?.number).toBe(1051);
+
+    const closed = ordersReducer(first, { type: "close-detail" });
+    const polled = ordersReducer(closed, { type: "loaded", orders: MOCK_BOARD, defaultSelectedId: o1052.id });
+    expect(polled.selectedId).toBeNull();
   });
 
-  it("advances an order and keeps the panel on it", () => {
-    const open = ordersReducer(initial, { type: "open-detail", id: 1051 });
-    const next = ordersReducer(open, { type: "advance", id: 1051, at: "12:50" });
-    expect(getSelectedOrder(next)?.status).toBe("preparing");
-    expect(countOrdersByColumn(next.orders)).toEqual({ received: 1, preparing: 3, delivered: 1 });
-    expect(initial.orders.find((o) => o.id === 1051)?.status).toBe("received");
+  it("takes the server list but keeps a newer local copy of an order", () => {
+    const advanced = changed(o1051, { status: "preparing" });
+    const local = ordersReducer(initial, { type: "action-succeeded", order: advanced });
+    // A poll that started before the advance still carries the old copy.
+    const polled = ordersReducer(local, { type: "loaded", orders: MOCK_BOARD, defaultSelectedId: null });
+    expect(byNumber(polled.orders, 1051).status).toBe("preparing");
+
+    const newer = changed(o1051, { status: "delivered", updatedAt: "2026-11-02T16:05:00.000Z" });
+    const later = ordersReducer(polled, { type: "loaded", orders: [newer], defaultSelectedId: null });
+    expect(later.orders.map((order) => [order.number, order.status])).toEqual([[1051, "delivered"]]);
+  });
+
+  it("closes the panel and the dialog of an order cancelled elsewhere", () => {
+    const open = ordersReducer(ordersReducer(initial, { type: "open-detail", id: o1051.id }), {
+      type: "request-cancel",
+      id: o1051.id,
+    });
+    const cancelled = changed(o1051, { status: "cancelled", cancellationReason: "order-error" });
+    const polled = ordersReducer(open, { type: "loaded", orders: [cancelled], defaultSelectedId: null });
+    expect(polled.selectedId).toBeNull();
+    expect(polled.cancelTargetId).toBeNull();
+  });
+
+  it("fails the first load, but only warns once the board is up", () => {
+    const failed = ordersReducer(createOrdersState(), { type: "load-failed", message: "Sin conexión" });
+    expect(failed.load).toBe("failed");
+    expect(failed.notice).toBeNull();
+
+    const warned = ordersReducer(initial, { type: "load-failed", message: "Sin conexión" });
+    expect(warned.load).toBe("ready");
+    expect(warned.orders).toBe(initial.orders);
+    expect(warned.notice).toBe("Sin conexión");
+    expect(ordersReducer(warned, { type: "dismiss-notice" }).notice).toBeNull();
+  });
+});
+
+describe("advance and cancel", () => {
+  it("marks the order pending until the API answers, then applies its copy", () => {
+    const open = ordersReducer(initial, { type: "open-detail", id: o1051.id });
+    const started = ordersReducer(open, { type: "action-started", id: o1051.id });
+    expect(isOrderPending(started, o1051.id)).toBe(true);
+    expect(getSelectedOrder(started)?.status).toBe("received");
+
+    const done = ordersReducer(started, { type: "action-succeeded", order: changed(o1051, { status: "preparing" }) });
+    expect(isOrderPending(done, o1051.id)).toBe(false);
+    expect(getSelectedOrder(done)?.status).toBe("preparing");
+    expect(countOrdersByColumn(done.orders)).toEqual({ received: 1, preparing: 3, delivered: 1 });
+  });
+
+  it("keeps the order as it was and shows the error when the API refuses", () => {
+    const started = ordersReducer(initial, { type: "action-started", id: o1051.id });
+    const failed = ordersReducer(started, { type: "action-failed", id: o1051.id, message: "No pudimos" });
+    expect(isOrderPending(failed, o1051.id)).toBe(false);
+    expect(failed.orders).toBe(initial.orders);
+    expect(failed.notice).toBe("No pudimos");
+    expect(ordersReducer(started, { type: "action-failed", id: o1051.id, message: null }).notice).toBeNull();
   });
 
   it("only asks to cancel orders that can still be cancelled", () => {
-    const asked = ordersReducer(initial, { type: "request-cancel", id: 1051 });
-    expect(getCancelTarget(asked)?.id).toBe(1051);
-    expect(ordersReducer(initial, { type: "request-cancel", id: 1047 })).toBe(initial);
+    const asked = ordersReducer(initial, { type: "request-cancel", id: o1051.id });
+    expect(getCancelTarget(asked)?.number).toBe(1051);
+    expect(ordersReducer(initial, { type: "request-cancel", id: byNumber(MOCK_BOARD, 1047).id })).toBe(initial);
   });
 
   it("keeps the order untouched when the dialog is dismissed", () => {
-    const asked = ordersReducer(initial, { type: "request-cancel", id: 1051 });
+    const asked = ordersReducer(initial, { type: "request-cancel", id: o1051.id });
     const back = ordersReducer(asked, { type: "dismiss-cancel" });
     expect(back.cancelTargetId).toBeNull();
     expect(back.orders).toBe(initial.orders);
   });
 
-  it("cancels only after confirming, closing the dialog and its panel", () => {
-    const open = ordersReducer(initial, { type: "open-detail", id: 1051 });
-    const asked = ordersReducer(open, { type: "request-cancel", id: 1051 });
-    const done = ordersReducer(asked, { type: "confirm-cancel", reason: "customer-request", at: "12:52" });
-    const cancelled = done.orders.find((o) => o.id === 1051);
-    expect(cancelled?.status).toBe("cancelled");
-    expect(cancelled?.cancellationReason).toBe("customer-request");
+  it("closes the dialog and its panel once the cancellation is applied", () => {
+    const open = ordersReducer(initial, { type: "open-detail", id: o1051.id });
+    const asked = ordersReducer(open, { type: "request-cancel", id: o1051.id });
+    const started = ordersReducer(asked, { type: "action-started", id: o1051.id });
+    expect(started.cancelTargetId).toBe(o1051.id);
+
+    const done = ordersReducer(started, {
+      type: "action-succeeded",
+      order: changed(o1051, { status: "cancelled", cancellationReason: "customer-request" }),
+    });
+    expect(byNumber(done.orders, 1051).cancellationReason).toBe("customer-request");
     expect(done.cancelTargetId).toBeNull();
     expect(done.selectedId).toBeNull();
     expect(countOrdersByColumn(done.orders)).toEqual({ received: 1, preparing: 2, delivered: 1 });
   });
 
-  it("keeps another selected order when cancelling a different order", () => {
-    const open = ordersReducer(initial, { type: "open-detail", id: 1052 });
-    const asked = ordersReducer(open, { type: "request-cancel", id: 1051 });
-    const done = ordersReducer(asked, { type: "confirm-cancel", reason: "order-error", at: "12:52" });
-    expect(done.selectedId).toBe(1052);
+  it("keeps another selected order when cancelling a different one", () => {
+    const open = ordersReducer(initial, { type: "open-detail", id: o1052.id });
+    const asked: OrdersState = ordersReducer(open, { type: "request-cancel", id: o1051.id });
+    const done = ordersReducer(asked, { type: "action-succeeded", order: changed(o1051, { status: "cancelled" }) });
+    expect(done.selectedId).toBe(o1052.id);
   });
 
-  it("ignores a confirmation without a pending dialog", () => {
-    expect(ordersReducer(initial, { type: "confirm-cancel", reason: "order-error", at: "12:52" })).toBe(initial);
+  it("closes the dialog when the cancellation fails", () => {
+    const asked = ordersReducer(initial, { type: "request-cancel", id: o1051.id });
+    const failed = ordersReducer(asked, { type: "action-failed", id: o1051.id, message: "No pudimos" });
+    expect(failed.cancelTargetId).toBeNull();
+  });
+
+  it("selects and clears the detail panel, ignoring unknown orders", () => {
+    const open = ordersReducer(initial, { type: "open-detail", id: o1052.id });
+    expect(getSelectedOrder(open)?.number).toBe(1052);
+    expect(ordersReducer(open, { type: "close-detail" }).selectedId).toBeNull();
+    expect(ordersReducer(initial, { type: "open-detail", id: "missing" })).toBe(initial);
   });
 });
