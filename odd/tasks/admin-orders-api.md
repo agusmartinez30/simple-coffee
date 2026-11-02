@@ -47,6 +47,7 @@ never sees orders created elsewhere. The API now exposes orders (feature `api-ca
     products with option groups, cart with quantities, kitchen note, total, submit via `POST /orders`.
   - Built in `features/orders/order-entry/` + shared `Drawer`. "Frecuentes" chip → "Todas" (no frequency data); table picker is a native select. 409 errors name the product line.
   - Evidence: tsc, lint OK; 845 tests passed; build OK. Full create flow not exercised live (login needs MFA).
+  - Commit `1bb4c66`. Review: medium; user declined for this candidate.
 
 ## Delivery
 
@@ -56,4 +57,4 @@ on top of `feat/api-catalog-orders-orders`. No overlap with `refactor/admin-core
 
 ## Next step
 
-T1.
+Manual smoke test of board + create flow with a signed-in session; then open the slice PRs when the user asks.
