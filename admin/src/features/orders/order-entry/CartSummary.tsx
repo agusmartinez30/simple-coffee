@@ -10,8 +10,9 @@ type CartSummaryProps = {
   disabled?: boolean;
 };
 
+/** 24px steppers in the side panel; 36px touch targets when the panel is full width on phones. */
 const ICON_BUTTON =
-  "flex size-6 shrink-0 items-center justify-center rounded-[6px] text-ink outline-1 -outline-offset-[0.5px] outline-line hover:bg-cream disabled:cursor-not-allowed disabled:opacity-40";
+  "flex size-9 shrink-0 sm:size-6 items-center justify-center rounded-[6px] text-ink outline-1 -outline-offset-[0.5px] outline-line hover:bg-cream disabled:cursor-not-allowed disabled:opacity-40";
 
 /** "Pedido actual": one row per line with quantity steppers, subtotal, remove and its note when allowed. */
 export function CartSummary({ lines, itemCount, onChange, disabled = false }: CartSummaryProps) {
@@ -32,14 +33,14 @@ export function CartSummary({ lines, itemCount, onChange, disabled = false }: Ca
           {lines.map((line) => (
             <li key={line.key} className="flex w-full flex-col gap-1.5">
               <div className="flex w-full items-center gap-2">
-                <span className="w-7 shrink-0 text-[11px] font-bold text-brand">{line.quantity}×</span>
+                <span className="w-9 shrink-0 text-[11px] font-bold text-brand sm:w-7">{line.quantity}×</span>
                 <span className="flex min-w-0 flex-1 flex-col">
                   <span className="truncate text-[11px] text-ink">{line.name}</span>
                   {line.optionSummary && <span className="truncate text-[10px] text-muted">{line.optionSummary}</span>}
                 </span>
                 <span className="text-[11px] font-bold whitespace-nowrap text-ink">{formatPrice(line.unitPrice * line.quantity)}</span>
               </div>
-              <div className="flex w-full items-center gap-1.5 pl-9">
+              <div className="flex w-full items-center gap-1.5 pl-11 sm:pl-9">
                 <button
                   type="button"
                   aria-label={`Quitar una unidad de ${line.name}`}
@@ -59,7 +60,7 @@ export function CartSummary({ lines, itemCount, onChange, disabled = false }: Ca
                   <Plus size={12} aria-hidden="true" />
                 </button>
                 {line.allowsNote ? (
-                  <label className="flex h-6 min-w-0 flex-1 items-center rounded-[6px] bg-cream px-2 focus-within:outline-2 focus-within:-outline-offset-1 focus-within:outline-brand">
+                  <label className="flex h-9 min-w-0 flex-1 items-center rounded-[6px] sm:h-6 bg-cream px-2 focus-within:outline-2 focus-within:-outline-offset-1 focus-within:outline-brand">
                     <span className="sr-only">Nota para {line.name}</span>
                     <input
                       type="text"
@@ -79,7 +80,7 @@ export function CartSummary({ lines, itemCount, onChange, disabled = false }: Ca
                   aria-label={`Quitar ${line.name} del pedido`}
                   disabled={disabled}
                   onClick={() => onChange({ type: "remove", key: line.key })}
-                  className="flex size-6 shrink-0 items-center justify-center rounded-[6px] text-muted hover:bg-danger-bg hover:text-danger disabled:cursor-not-allowed disabled:opacity-40"
+                  className="flex size-9 shrink-0 items-center justify-center rounded-[6px] text-muted sm:size-6 hover:bg-danger-bg hover:text-danger disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   <Trash2 size={12} aria-hidden="true" />
                 </button>

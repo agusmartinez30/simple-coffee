@@ -7,7 +7,7 @@ import { formatPrice } from "@/shared/lib/format-price";
 import type { Order } from "../order-types";
 import { canSubmitCart, cartItemCount, cartTotal, ORDER_NOTE_MAX_LENGTH } from "./cart";
 import { CartSummary } from "./CartSummary";
-import { describeTable, filterEntryProducts, submitLabel } from "./entry-view";
+import { describeTable, filterEntryProducts, formatItemCount, submitLabel } from "./entry-view";
 import type { EntryProduct, EntryTable } from "./entry-types";
 import { OptionPickerDialog } from "./OptionPickerDialog";
 import { ProductPicker } from "./ProductPicker";
@@ -79,7 +79,8 @@ function TablePicker({
 /**
  * "Nuevo pedido · Cargar pedido" (modeled on 02C): side panel over the orders board. Container:
  * `useOrderEntry` owns the catalog, the cart and the submission; this component owns the search,
- * the category chip and the option picker.
+ * the category chip and the option picker. Full width on phones: table, products and cart stack in
+ * one scrolling column while the total and the submit button stay pinned at the bottom.
  */
 export function NewOrderPanel({ onClose, onCreated }: NewOrderPanelProps) {
   const titleId = useId();
@@ -110,8 +111,8 @@ export function NewOrderPanel({ onClose, onCreated }: NewOrderPanelProps) {
 
   return (
     <>
-      <Drawer labelledBy={titleId} onClose={close}>
-        <header className="flex w-full shrink-0 items-start justify-between px-5 pt-5 pb-3.5">
+      <Drawer labelledBy={titleId} onClose={close} className="w-full sm:w-[400px]">
+        <header className="flex w-full shrink-0 items-start justify-between px-4 pt-4 pb-3.5 sm:px-5 sm:pt-5">
           <div className="flex flex-col gap-1">
             <p className="text-[10px] font-bold tracking-[1px] text-muted">NUEVO PEDIDO</p>
             <h2 id={titleId} className="text-[22px] font-bold text-ink">
@@ -123,7 +124,7 @@ export function NewOrderPanel({ onClose, onCreated }: NewOrderPanelProps) {
             aria-label="Cerrar"
             onClick={close}
             disabled={submitting}
-            className="flex size-8 items-center justify-center rounded-nav text-muted outline-1 -outline-offset-[0.5px] outline-line hover:bg-cream hover:text-ink disabled:cursor-not-allowed"
+            className="flex size-10 items-center justify-center rounded-nav text-muted outline-1 -outline-offset-[0.5px] outline-line hover:bg-cream hover:text-ink disabled:cursor-not-allowed sm:size-8"
           >
             <X size={16} aria-hidden="true" />
           </button>
@@ -154,7 +155,7 @@ export function NewOrderPanel({ onClose, onCreated }: NewOrderPanelProps) {
 
         {catalog.status === "ready" && (
           <>
-            <div className="flex min-h-0 w-full flex-1 flex-col gap-3.5 overflow-y-auto px-5 pb-3.5">
+            <div className="flex min-h-0 w-full flex-1 flex-col gap-3.5 overflow-y-auto px-4 pb-3.5 sm:px-5">
               <TablePicker
                 tables={catalog.catalog.tables}
                 value={cart.tableNumber}
@@ -188,7 +189,7 @@ export function NewOrderPanel({ onClose, onCreated }: NewOrderPanelProps) {
               </label>
             </div>
 
-            <footer className="flex w-full shrink-0 flex-col gap-2.5 border-t border-line px-5 pt-3.5 pb-[18px]">
+            <footer className="flex w-full shrink-0 flex-col gap-2.5 border-t border-line bg-surface px-4 pt-3.5 pb-[max(18px,env(safe-area-inset-bottom))] sm:px-5">
               {error && (
                 <div className="flex w-full items-center gap-2">
                   <Notice tone="danger" icon={TriangleAlert} className="flex-1">
@@ -205,7 +206,10 @@ export function NewOrderPanel({ onClose, onCreated }: NewOrderPanelProps) {
                 </div>
               )}
               <div className="flex w-full items-center justify-between">
-                <span className="text-[12px] font-bold text-muted">Total</span>
+                <span className="text-[12px] font-bold text-muted">
+                  Total
+                  <span className="font-semibold sm:hidden"> · {formatItemCount(cartItemCount(cart.lines))}</span>
+                </span>
                 <span className="text-[18px] font-bold text-ink">{formatPrice(cartTotal(cart.lines))}</span>
               </div>
               <PrimaryButton

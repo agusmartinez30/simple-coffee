@@ -21,9 +21,10 @@ const isStale = (error: OrdersApiError) => error.kind === "not-found" || error.k
  * Orders board on the API: loads today's orders, polls them every `ORDERS_POLL_MS` (paused while
  * the tab is hidden), keeps `now` ("HH:MM" in the service time zone) in step, and sends advance /
  * cancel, applying the order the API answers. `offline` (the forced `empty` variant) starts with an
- * empty board and never calls the API.
+ * empty board and never calls the API. `autoSelect` (read when the first load answers) opens the
+ * detail on the default order; phones turn it off so the detail sheet does not cover the board.
  */
-export function useOrdersBoard({ offline = false }: { offline?: boolean } = {}): {
+export function useOrdersBoard({ offline = false, autoSelect = true }: { offline?: boolean; autoSelect?: boolean } = {}): {
   state: OrdersState;
   now: string;
   dispatch: (action: OrdersAction) => void;
@@ -34,6 +35,10 @@ export function useOrdersBoard({ offline = false }: { offline?: boolean } = {}):
   const [state, dispatch] = useReducer(ordersReducer, offline ? [] : null, createOrdersState);
   const [now, setNow] = useState(currentTime);
   const loading = useRef(false);
+  const autoSelectRef = useRef(autoSelect);
+  useEffect(() => {
+    autoSelectRef.current = autoSelect;
+  }, [autoSelect]);
 
   const fail = useCallback((error: OrdersApiError, operation: OrdersOperation, id?: string) => {
     // A missing session is handled by the auth guard, which sends the staff member to /login.
@@ -51,7 +56,11 @@ export function useOrdersBoard({ offline = false }: { offline?: boolean } = {}):
     const time = currentTime();
     setNow(time);
     if (result.ok) {
-      dispatch({ type: "loaded", orders: result.value, defaultSelectedId: getDefaultSelectedOrderId(result.value, time) });
+      dispatch({
+        type: "loaded",
+        orders: result.value,
+        defaultSelectedId: autoSelectRef.current ? getDefaultSelectedOrderId(result.value, time) : null,
+      });
     } else {
       fail(result.error, "load");
     }

@@ -3,7 +3,9 @@
 import { useMemo, useState } from "react";
 import { ClipboardList, LoaderCircle, RotateCw, TriangleAlert, X } from "lucide-react";
 import { Notice } from "@/shared/ui";
+import { useIsDesktop } from "@/shared/lib/use-media-query";
 import { useScreenState } from "@/shared/lib/use-screen-state";
+import { pickActiveTab } from "./board-tabs";
 import { CancelOrderDialog } from "./CancelOrderDialog";
 import { KanbanBoard, type BoardEmptyState } from "./KanbanBoard";
 import { OrderDetailPanel } from "./OrderDetailPanel";
@@ -20,7 +22,7 @@ import {
   type QuickFilter,
 } from "./order-alerts";
 import { getCancelTarget, getSelectedOrder } from "./orders-state";
-import { groupOrdersByColumn } from "./orders-view";
+import { groupOrdersByColumn, type OrderColumnId } from "./orders-view";
 import { useOrdersBoard } from "./use-orders-board";
 
 /**
@@ -63,10 +65,16 @@ function BoardPlaceholder({ failed, onRetry }: { failed: boolean; onRetry: () =>
  * 03 · Gestión de pedidos (propuesta optimizada). Container: `useOrdersBoard` owns the day's
  * orders from the API (polling, advance, two-step cancellation); this screen owns search, quick
  * filter, toggles and whether "Nuevo pedido" is open. A created order joins the board selected.
+ * Below `lg` it also owns the status tab on screen; there no order opens by default, since the
+ * detail is a sheet over the board.
  */
 export function OrdersScreen() {
   const forcedState = useScreenState(ORDERS_FORCED_STATES);
-  const { state, now, dispatch, refresh, advance, confirmCancel } = useOrdersBoard({ offline: forcedState === "empty" });
+  const isDesktop = useIsDesktop();
+  const { state, now, dispatch, refresh, advance, confirmCancel } = useOrdersBoard({
+    offline: forcedState === "empty",
+    autoSelect: isDesktop,
+  });
   const selectedOrder = getSelectedOrder(state);
   const cancelTarget = getCancelTarget(state);
   const [query, setQuery] = useState(() => (forcedState === "no-results" ? NO_RESULTS_QUERY : ""));
@@ -74,6 +82,7 @@ export function OrdersScreen() {
   const [showDelivered, setShowDelivered] = useState(true);
   const [alertsEnabled, setAlertsEnabled] = useState(true);
   const [entryOpen, setEntryOpen] = useState(false);
+  const [chosenTab, setChosenTab] = useState<OrderColumnId | null>(null);
   const offline = forcedState === "empty";
 
   const handleCreated = (order: Order) => {
@@ -87,6 +96,7 @@ export function OrdersScreen() {
     [orders, query, quickFilter, showDelivered, now],
   );
   const columns = groupOrdersByColumn(sortNewestFirst(visibleOrders), { showDelivered });
+  const activeColumnId = pickActiveTab(columns, chosenTab);
 
   const clearFilters = () => {
     setQuery("");
@@ -110,8 +120,9 @@ export function OrdersScreen() {
   }
 
   return (
-    // The board and the panel fill the viewport under the 72px top bar; columns scroll on their own.
-    <div className="flex h-[calc(100dvh-72px)] min-h-[640px] flex-col gap-3 px-7 pt-[22px] pb-7">
+    // From `lg` the board and the panel fill the viewport under the 72px top bar and columns scroll
+    // on their own; below it the page scrolls and the single column grows with its cards.
+    <div className="flex min-h-[calc(100dvh-var(--topbar-h))] flex-col gap-3 px-4 pt-4 pb-6 lg:h-[calc(100dvh-var(--topbar-h))] lg:min-h-[640px] lg:px-7 lg:pt-[22px] lg:pb-7">
       <OrdersHeader
         enabled={alertsEnabled}
         onToggle={() => setAlertsEnabled((enabled) => !enabled)}
@@ -147,6 +158,8 @@ export function OrdersScreen() {
           <KanbanBoard
             columns={columns}
             emptyState={emptyState}
+            activeColumnId={activeColumnId}
+            onActiveColumnChange={setChosenTab}
             now={now}
             selectedId={state.selectedId}
             pendingIds={state.pendingIds}
@@ -154,6 +167,7 @@ export function OrdersScreen() {
             onAdvance={advance}
           />
           <OrderDetailPanel
+            layout={isDesktop ? "panel" : "sheet"}
             order={selectedOrder}
             now={now}
             pending={selectedOrder !== null && state.pendingIds.includes(selectedOrder.id)}

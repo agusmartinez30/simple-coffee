@@ -20,8 +20,9 @@ function groupHint(group: EntryOptionGroup): string {
   return parts.join(" · ");
 }
 
+/** 36px option rows; 44px touch targets below `sm`. */
 const OPTION_ROW =
-  "flex h-9 w-full cursor-pointer items-center gap-2.5 rounded-nav px-2.5 outline-1 -outline-offset-[0.5px] outline-line has-[:checked]:bg-brand-wash has-[:checked]:outline-brand has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-50";
+  "flex h-11 w-full sm:h-9 cursor-pointer items-center gap-2.5 rounded-nav px-2.5 outline-1 -outline-offset-[0.5px] outline-line has-[:checked]:bg-brand-wash has-[:checked]:outline-brand has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-50";
 
 /**
  * Option picker of a product with option groups: radios for single groups (optional ones add
@@ -35,7 +36,7 @@ export function OptionPickerDialog({ product, onClose, onAdd }: OptionPickerDial
   const preview = toLine(product, selection);
 
   return (
-    <Modal labelledBy={titleId} onClose={onClose} className="w-[400px]">
+    <Modal labelledBy={titleId} onClose={onClose} className="w-full sm:w-[400px]">
       <form
         className="flex flex-col gap-4"
         onSubmit={(event) => {

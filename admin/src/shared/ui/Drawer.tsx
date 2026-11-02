@@ -8,18 +8,28 @@ export type DrawerProps = {
   /** Id of the heading that names the dialog. */
   labelledBy: string;
   onClose: () => void;
+  /**
+   * `right` (default): white side panel under the top bar. `left`: full-height panel from the left
+   * edge (the mobile navigation menu), whose look comes from its content.
+   */
+  placement?: "right" | "left";
   /** Width class of the panel. */
   className?: string;
   children: ReactNode;
 };
 
+const PLACEMENT_CLASSES = {
+  right: "top-(--topbar-h) right-0 bottom-0 bg-surface shadow-drawer outline-1 -outline-offset-[0.5px] outline-line",
+  left: "inset-y-0 left-0 shadow-drawer",
+} as const;
+
 /**
- * Side panel `dialog` pinned to the right under the 72px top bar, over a light scrim. Same focus
- * rules as `Modal`: focus starts on the first field (else the first focusable element), stays
- * inside and returns to the opener on close; Escape and the scrim call `onClose`. A `Modal`
- * rendered after it stacks on top.
+ * Side panel `dialog` over a light scrim, pinned to the right under the top bar (whose height is
+ * `--topbar-h`) or to the left edge. Same focus rules as `Modal`: focus starts on the first field
+ * (else the first focusable element), stays inside and returns to the opener on close; Escape and
+ * the scrim call `onClose`. A `Modal` rendered after it stacks on top.
  */
-export function Drawer({ labelledBy, onClose, className = "w-[400px]", children }: DrawerProps) {
+export function Drawer({ labelledBy, onClose, placement = "right", className = "w-[400px]", children }: DrawerProps) {
   const panelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -60,10 +70,7 @@ export function Drawer({ labelledBy, onClose, className = "w-[400px]", children 
             focusable[target].focus();
           }
         }}
-        className={clsx(
-          "fixed top-[72px] right-0 bottom-0 flex max-w-full flex-col bg-surface shadow-drawer outline-1 -outline-offset-[0.5px] outline-line",
-          className,
-        )}
+        className={clsx("fixed flex max-w-full flex-col", PLACEMENT_CLASSES[placement], className)}
       >
         {children}
       </div>

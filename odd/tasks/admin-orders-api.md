@@ -48,6 +48,13 @@ never sees orders created elsewhere. The API now exposes orders (feature `api-ca
   - Built in `features/orders/order-entry/` + shared `Drawer`. "Frecuentes" chip → "Todas" (no frequency data); table picker is a native select. 409 errors name the product line.
   - Evidence: tsc, lint OK; 845 tests passed; build OK. Full create flow not exercised live (login needs MFA).
   - Commit `1bb4c66`. Review: medium; user declined for this candidate.
+- [x] T3 — Mobile layout for the orders view (route: delegated writer; trigger: 2+ non-trivial files)
+  - Scope: orders board, detail panel, cancel dialog, new-order drawer, and the admin shell they
+    live in (sidebar becomes an off-canvas menu below `lg`). Desktop layout unchanged.
+  - Board on mobile: one column at a time with status tabs and counts; detail opens full screen.
+  - Built: `--topbar-h` (56/72px), sidebar in left `Drawer` below `lg`, `board-tabs.ts` tab model, `useIsDesktop` gates auto-select. Desktop meant unchanged.
+  - Known gap: other modules' modals still hardcode `top-[72px] left-[220px]` backdrops.
+  - Evidence: tsc, lint OK; 852 tests passed; build OK. No visual/browser check run.
 
 ## Delivery
 

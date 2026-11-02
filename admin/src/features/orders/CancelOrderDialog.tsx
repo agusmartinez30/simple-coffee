@@ -29,9 +29,10 @@ export function CancelOrderDialog({ order, pending = false, onDismiss, onConfirm
   }, []);
 
   return (
-    // The 03 dialog sits 240px from the top of the 900px frame, centered horizontally.
+    // From `lg` the 03 dialog sits 240px from the top of the 900px frame, centered horizontally;
+    // below it the card is centered with 16px margins and scrolls when the screen is short.
     <div
-      className="fixed inset-0 z-40 flex items-start justify-center bg-ink/44 pt-[240px]"
+      className="fixed inset-0 z-40 flex items-center justify-center bg-ink/44 p-4 lg:items-start lg:p-0 lg:pt-[240px]"
       onClick={(event) => {
         if (event.target === event.currentTarget) onDismiss();
       }}
@@ -44,7 +45,7 @@ export function CancelOrderDialog({ order, pending = false, onDismiss, onConfirm
         onKeyDown={(event) => {
           if (event.key === "Escape") onDismiss();
         }}
-        className="flex w-[420px] flex-col gap-4 rounded-auth bg-surface p-[22px] shadow-modal"
+        className="flex max-h-full w-full max-w-[420px] flex-col gap-4 overflow-y-auto rounded-auth bg-surface p-[18px] shadow-modal lg:w-[420px] lg:p-[22px]"
       >
         <span className="flex size-10 items-center justify-center rounded-full bg-danger-bg text-danger">
           <TriangleAlert size={20} aria-hidden="true" />
@@ -80,7 +81,7 @@ export function CancelOrderDialog({ order, pending = false, onDismiss, onConfirm
             ref={backRef}
             type="button"
             onClick={onDismiss}
-            className="flex h-[42px] flex-1 items-center justify-center rounded-[9px] text-[12px] font-bold text-ink outline-1 -outline-offset-[0.5px] outline-line hover:bg-cream"
+            className="flex h-11 flex-1 items-center justify-center rounded-[9px] lg:h-[42px] text-[12px] font-bold text-ink outline-1 -outline-offset-[0.5px] outline-line hover:bg-cream"
           >
             Volver
           </button>
@@ -89,7 +90,7 @@ export function CancelOrderDialog({ order, pending = false, onDismiss, onConfirm
             disabled={pending}
             aria-busy={pending}
             onClick={() => onConfirm(reason)}
-            className="flex h-[42px] flex-1 items-center justify-center rounded-[9px] bg-danger text-[12px] font-bold text-white hover:bg-danger/92 disabled:cursor-wait disabled:opacity-60"
+            className="flex h-11 flex-1 items-center justify-center rounded-[9px] lg:h-[42px] bg-danger text-[12px] font-bold text-white hover:bg-danger/92 disabled:cursor-wait disabled:opacity-60"
           >
             {pending ? "Cancelando…" : "Confirmar cancelación"}
           </button>

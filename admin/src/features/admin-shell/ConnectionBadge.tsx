@@ -6,6 +6,7 @@ type ConnectionBadgeProps = {
    * "History Sync Status" pill (same shape as `live`). `synced`: 07 "Catalog Sync" pill (same shape).
    */
   variant?: "online" | "live" | "verified" | "synced";
+  className?: string;
 };
 
 const BADGE_LABELS = {
@@ -16,13 +17,14 @@ const BADGE_LABELS = {
 } as const;
 
 /** Green connection pill of the top bar. */
-export function ConnectionBadge({ variant = "online" }: ConnectionBadgeProps) {
+export function ConnectionBadge({ variant = "online", className }: ConnectionBadgeProps) {
   return (
     <div
       role="status"
       className={clsx(
-        "flex h-8 items-center gap-[7px] bg-success-bg px-[11px]",
+        "h-8 items-center gap-[7px] bg-success-bg px-[11px]",
         variant === "online" ? "rounded-[16px]" : "rounded-nav",
+        className ?? "flex",
       )}
     >
       <span aria-hidden="true" className="size-[7px] rounded-full bg-success" />

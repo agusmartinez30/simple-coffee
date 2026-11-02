@@ -22,7 +22,7 @@ function CategoryChip({ pressed, onClick, children }: { pressed: boolean; onClic
       aria-pressed={pressed}
       onClick={onClick}
       className={clsx(
-        "shrink-0 rounded-[7px] px-[9px] py-1.5 text-[10px] font-semibold whitespace-nowrap outline-1 -outline-offset-[0.5px]",
+        "min-h-9 shrink-0 rounded-[7px] px-[9px] py-1.5 text-[10px] sm:min-h-0 font-semibold whitespace-nowrap outline-1 -outline-offset-[0.5px]",
         pressed ? "bg-ink text-white outline-ink" : "bg-surface text-muted outline-line hover:bg-cream",
       )}
     >
@@ -31,7 +31,10 @@ function CategoryChip({ pressed, onClick, children }: { pressed: boolean; onClic
   );
 }
 
-/** "Agregar productos": search, category chips and one row per orderable product. */
+/**
+ * "Agregar productos": search, category chips and one row per orderable product. On phones the list
+ * grows with the panel's own scroll instead of nesting a 230px scroller.
+ */
 export function ProductPicker({
   products,
   categories,
@@ -77,7 +80,7 @@ export function ProductPicker({
       {products.length === 0 ? (
         <p className="py-3 text-center text-[11px] text-muted">No encontramos productos con esa búsqueda.</p>
       ) : (
-        <ul aria-label="Productos" className="flex max-h-[230px] w-full flex-col overflow-y-auto">
+        <ul aria-label="Productos" className="flex w-full flex-col sm:max-h-[230px] sm:overflow-y-auto">
           {products.map((product) => (
             <li key={product.id}>
               <button

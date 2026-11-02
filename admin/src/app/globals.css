@@ -44,6 +44,17 @@
   --font-sans: var(--font-dm-sans), system-ui, sans-serif;
 }
 
+/* Height of the admin top bar: compact on phones and tablets, the exports' 72px from `lg` (64rem). */
+:root {
+  --topbar-h: 56px;
+}
+
+@media (width >= 64rem) {
+  :root {
+    --topbar-h: 72px;
+  }
+}
+
 body {
   background-color: var(--color-cream);
   color: var(--color-ink);
