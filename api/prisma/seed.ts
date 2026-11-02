@@ -6,13 +6,15 @@ import { PrismaClient } from '../src/generated/prisma/client.js';
 import { unmetPasswordRequirements } from '../src/modules/auth/domain/password-policy.js';
 import { normalizeEmail } from '../src/modules/auth/domain/staff-user.js';
 import { Rfc6238Totp } from '../src/modules/auth/infrastructure/rfc6238-totp.js';
+import { seedCatalog } from './seed-catalog.js';
 import { seedTablesConfiguration } from './seed-tables.js';
 import { seedVenue } from './seed-venue.js';
 
 /**
  * Creates the single venue when missing (see `seed-venue.ts`), creates (or updates) the initial
  * owner from environment variables, and creates the sample table configuration when there is none
- * (see `seed-tables.ts`; its QR credentials are issued by the owner). Run with `npm run db:seed`.
+ * (see `seed-tables.ts`; its QR credentials are issued by the owner) and the sample menu when the catalog is empty (see `seed-catalog.ts`).
+ * Run with `npm run db:seed`.
  * Credentials always come from the environment; nothing is hardcoded.
  */
 const env = z
@@ -50,6 +52,9 @@ try {
 
   const seededTables = await seedTablesConfiguration(prisma, owner);
   console.log(seededTables ? 'Seeded spaces, tables and QR credentials.' : 'Kept the existing table configuration.');
+
+  const seededCatalog = await seedCatalog(prisma);
+  console.log(seededCatalog ? 'Seeded menu categories and products.' : 'Kept the existing catalog.');
 } finally {
   await prisma.$disconnect();
 }

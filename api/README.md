@@ -30,7 +30,7 @@ The app validates its environment at boot (`src/shared/config/env.ts`) and exits
 | `test`                       | Vitest: unit specs in `src/`, e2e specs in `test/`  |
 | `db:generate`                | Generate the Prisma client into `src/generated/`    |
 | `db:migrate` / `db:deploy`   | Create/apply migrations (dev) or apply them (prod)  |
-| `db:seed`                    | Create the venue if missing; upsert the owner from `SEED_OWNER_*` env |
+| `db:seed`                    | Create the venue, tables and menu if missing; upsert the owner from `SEED_OWNER_*` env |
 | `db:studio`                  | Prisma Studio                                       |
 
 ## Architecture rules
@@ -110,6 +110,7 @@ Own session auth, no JWT. `src/modules/auth` stores sessions in PostgreSQL and h
 - QR tokens are 10 random alphanumeric characters (`node:crypto`), unique across every credential ever issued. Regenerating revokes the active credential with the next audit number (`QR-119` after `QR-118`); disabling keeps the credential (paused); deleting the table revokes it and keeps the row, so its token and number never come back. `issuedBy` is the signed-in staff member.
 - `version` is display and audit only (no optimistic concurrency): editing the form always bumps it; enable/disable, layout and regenerate bump it when something changes.
 - The seed creates the admin mock configuration (3 spaces, 12 tables with their fixed QR tokens, Mesa 07's audited rotation) only when there is no table configuration yet; its credentials are issued by the seeded owner.
+- The seed also creates the admin mock menu (9 categories, 13 products, the coffees' "Tamaño" and "Extras" option groups) only when the catalog has no categories or products, so it never overwrites admin edits; ids are deterministic (`prd_cappuccino`, `opg_cappuccino_tamano`, `opt_cappuccino_tamano_mediano`).
 
 ## Notes
 

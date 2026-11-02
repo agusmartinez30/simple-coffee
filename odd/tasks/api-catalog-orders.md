@@ -49,7 +49,12 @@ Out of scope: moments, collections, public/table endpoints, table sessions, bill
     Restore brings a product back as draft. `ResolveOrderableProducts` exported for orders.
   - Not covered: category `visible` does not block ordering; no image field.
   - Evidence: prisma validate, typecheck, lint clean; 151 tests passed; build OK. ~2070 lines.
-- [ ] T2 — Seed categories and products from the admin mock catalog (route: delegated writer)
+  - Commit `bf95c8a`. Review: assessed medium (slice_budget_reached); user declined for this candidate.
+- [x] T2 — Seed categories and products from the admin mock catalog (route: delegated writer)
+  - Slice branch `feat/api-catalog-orders-seed`. `api/prisma/seed-catalog.ts`: skips when any catalog
+    row exists, else one transaction; data validated with domain rules; deterministic ids (`prd_<slug>`).
+    9 categories, 13 products, 4 groups, 9 options. Vitest now includes `prisma/**/*.spec.ts`.
+  - Evidence: typecheck, lint clean; 157 tests passed; build OK; db:seed run twice (second kept data).
 - [ ] T3 — `orders` module: schema + migration, domain (pricing, lifecycle), use cases, HTTP, tests (route: delegated writer)
 
 ## Delivery
