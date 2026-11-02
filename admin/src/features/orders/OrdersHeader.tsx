@@ -1,5 +1,5 @@
 import clsx from "clsx";
-import { Volume2, VolumeX } from "lucide-react";
+import { Plus, Volume2, VolumeX } from "lucide-react";
 import type { AlertMetric } from "./order-alerts";
 import { ORDER_TONE_CLASSES } from "./OrderTags";
 
@@ -26,8 +26,13 @@ function AlertsControl({ enabled, onToggle }: AlertsControlProps) {
   );
 }
 
-/** "Encabezado de página": title, context line and the alerts control. */
-export function OrdersHeader({ enabled, onToggle }: AlertsControlProps) {
+type OrdersHeaderProps = AlertsControlProps & {
+  /** Opens "Nuevo pedido"; the button is left out when absent (offline variants). */
+  onNewOrder?: () => void;
+};
+
+/** "Encabezado de página": title, context line, the alerts control and "Nuevo pedido". */
+export function OrdersHeader({ enabled, onToggle, onNewOrder }: OrdersHeaderProps) {
   return (
     <header className="flex h-[50px] w-full shrink-0 items-center justify-between">
       <div className="flex flex-col gap-[3px]">
@@ -36,7 +41,20 @@ export function OrdersHeader({ enabled, onToggle }: AlertsControlProps) {
           Priorizá, prepará y entregá sin perder el contexto del salón.
         </p>
       </div>
-      <AlertsControl enabled={enabled} onToggle={onToggle} />
+      <div className="flex items-center gap-2">
+        <AlertsControl enabled={enabled} onToggle={onToggle} />
+        {onNewOrder && (
+          <button
+            type="button"
+            aria-haspopup="dialog"
+            onClick={onNewOrder}
+            className="flex h-9 items-center gap-1.5 rounded-nav bg-brand px-3 text-[11px] font-bold whitespace-nowrap text-white hover:bg-brand/92"
+          >
+            <Plus size={16} aria-hidden="true" />
+            Nuevo pedido
+          </button>
+        )}
+      </div>
     </header>
   );
 }

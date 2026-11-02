@@ -153,3 +153,19 @@ describe("advance and cancel", () => {
     expect(ordersReducer(initial, { type: "open-detail", id: "missing" })).toBe(initial);
   });
 });
+
+describe("creating an order", () => {
+  it("adds the order the API created and opens it in the panel", () => {
+    const created: Order = { ...o1051, id: "new-order", number: 1099, updatedAt: "2026-11-02T18:00:00.000Z" };
+    const next = ordersReducer(initial, { type: "created", order: created });
+    expect(next.orders).toHaveLength(MOCK_BOARD.length + 1);
+    expect(getSelectedOrder(next)?.number).toBe(1099);
+  });
+
+  it("keeps a single copy when a poll already brought it", () => {
+    const polled = ordersReducer(initial, { type: "loaded", orders: [...MOCK_BOARD, { ...o1052, id: "new-order" }], defaultSelectedId: null });
+    const next = ordersReducer(polled, { type: "created", order: { ...o1052, id: "new-order" } });
+    expect(next.orders.filter((order) => order.id === "new-order")).toHaveLength(1);
+    expect(next.selectedId).toBe("new-order");
+  });
+});

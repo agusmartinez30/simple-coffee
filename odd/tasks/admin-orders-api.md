@@ -41,7 +41,12 @@ never sees orders created elsewhere. The API now exposes orders (feature `api-ca
     leave the board 30 min after delivery. `?state=detail|cancel` removed.
   - Evidence: tsc, lint OK; 809 tests passed; build OK. Not yet exercised against a live API.
   - Commit `22fa936`. Review: medium; user declined for this candidate.
-- [ ] T2 — Create order from the panel (route: TBD after design decision)
+- [x] T2 — Create order from the panel (route: delegated writer; trigger: 2+ non-trivial files)
+  - Agreed design: "Nuevo pedido" button on the board opens a side panel modeled on export
+    "ADMIN 02C · Cargar pedido": table picker, product search + category chips, option picker for
+    products with option groups, cart with quantities, kitchen note, total, submit via `POST /orders`.
+  - Built in `features/orders/order-entry/` + shared `Drawer`. "Frecuentes" chip → "Todas" (no frequency data); table picker is a native select. 409 errors name the product line.
+  - Evidence: tsc, lint OK; 845 tests passed; build OK. Full create flow not exercised live (login needs MFA).
 
 ## Delivery
 

@@ -17,7 +17,7 @@ export type OrdersApiError =
   /** 400: the API rejected the order (`issues` empty when the request shape itself was refused). */
   | { kind: "invalid"; issues: readonly OrdersIssue[] }
   /** 409: the current state forbids it (finished order, disabled table, product not orderable). */
-  | { kind: "conflict"; code: OrdersConflictCode }
+  | { kind: "conflict"; code: OrdersConflictCode; productId?: string }
   /** 404: the order no longer exists. */
   | { kind: "not-found" }
   /** 401: no usable session cookie. */
@@ -64,9 +64,12 @@ async function toError(response: Response): Promise<OrdersApiError> {
   const body = await readJson(response);
   if (response.status === 400) return { kind: "invalid", issues: isRecord(body) ? toIssues(body.issues) : [] };
   const code = isRecord(body) ? body.error : undefined;
-  return CONFLICT_CODES.includes(code as OrdersConflictCode)
+  if (!CONFLICT_CODES.includes(code as OrdersConflictCode)) return { kind: "unknown" };
+  // `product_not_orderable` names the product, so the order entry can point at its line.
+  const productId = isRecord(body) && typeof body.productId === "string" ? body.productId : undefined;
+  return productId === undefined
     ? { kind: "conflict", code: code as OrdersConflictCode }
-    : { kind: "unknown" };
+    : { kind: "conflict", code: code as OrdersConflictCode, productId };
 }
 
 async function request<T>(path: string, init: RequestInit, parse: (body: unknown) => T | null): Promise<OrdersResult<T>> {

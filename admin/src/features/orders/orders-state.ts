@@ -24,6 +24,8 @@ export type OrdersAction =
   | { type: "load-failed"; message: string }
   | { type: "action-started"; id: string }
   | { type: "action-succeeded"; order: Order }
+  /** An order created from "Nuevo pedido": it joins the board and opens in the panel. */
+  | { type: "created"; order: Order }
   /** `message` is null when there is nothing to tell (a lost session redirects to /login). */
   | { type: "action-failed"; id: string; message: string | null }
   | { type: "dismiss-notice" }
@@ -118,6 +120,8 @@ export function ordersReducer(state: OrdersState, action: OrdersAction): OrdersS
         orders: upsert(state.orders, action.order),
         pendingIds: withoutPending(state, action.order.id),
       });
+    case "created":
+      return settleSelection({ ...state, orders: upsert(state.orders, action.order), selectedId: action.order.id });
     case "action-failed":
       return {
         ...state,

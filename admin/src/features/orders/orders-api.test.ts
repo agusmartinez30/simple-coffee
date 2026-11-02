@@ -177,7 +177,10 @@ describe("createOrder", () => {
     expect(await createOrder(input)).toEqual({ ok: false, error: { kind: "conflict", code: "table_disabled" } });
 
     fetchMock.mockResolvedValueOnce(apiError(409, "product_not_orderable", { productId: "p", reason: "archived" }));
-    expect(await createOrder(input)).toEqual({ ok: false, error: { kind: "conflict", code: "product_not_orderable" } });
+    expect(await createOrder(input)).toEqual({
+      ok: false,
+      error: { kind: "conflict", code: "product_not_orderable", productId: "p" },
+    });
 
     fetchMock.mockResolvedValueOnce(apiError(409, "something_new"));
     expect(await createOrder(input)).toEqual({ ok: false, error: { kind: "unknown" } });

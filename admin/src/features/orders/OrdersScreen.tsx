@@ -9,6 +9,8 @@ import { KanbanBoard, type BoardEmptyState } from "./KanbanBoard";
 import { OrderDetailPanel } from "./OrderDetailPanel";
 import { OrderToolbar } from "./OrderToolbar";
 import { OrderMetrics, OrdersHeader } from "./OrdersHeader";
+import { NewOrderPanel } from "./order-entry/NewOrderPanel";
+import type { Order } from "./order-types";
 import {
   countQuickFilters,
   filterBoardOrders,
@@ -60,19 +62,24 @@ function BoardPlaceholder({ failed, onRetry }: { failed: boolean; onRetry: () =>
 /**
  * 03 · Gestión de pedidos (propuesta optimizada). Container: `useOrdersBoard` owns the day's
  * orders from the API (polling, advance, two-step cancellation); this screen owns search, quick
- * filter and toggles.
+ * filter, toggles and whether "Nuevo pedido" is open. A created order joins the board selected.
  */
 export function OrdersScreen() {
   const forcedState = useScreenState(ORDERS_FORCED_STATES);
-  const { state, now, dispatch, refresh, advance, confirmCancel } = useOrdersBoard({
-    offline: forcedState === "empty",
-  });
+  const { state, now, dispatch, refresh, advance, confirmCancel } = useOrdersBoard({ offline: forcedState === "empty" });
   const selectedOrder = getSelectedOrder(state);
   const cancelTarget = getCancelTarget(state);
   const [query, setQuery] = useState(() => (forcedState === "no-results" ? NO_RESULTS_QUERY : ""));
   const [quickFilter, setQuickFilter] = useState<QuickFilter>("all");
   const [showDelivered, setShowDelivered] = useState(true);
   const [alertsEnabled, setAlertsEnabled] = useState(true);
+  const [entryOpen, setEntryOpen] = useState(false);
+  const offline = forcedState === "empty";
+
+  const handleCreated = (order: Order) => {
+    setEntryOpen(false);
+    dispatch({ type: "created", order });
+  };
 
   const orders = useMemo(() => keepRecentDelivered(state.orders, now), [state.orders, now]);
   const visibleOrders = useMemo(
@@ -105,7 +112,11 @@ export function OrdersScreen() {
   return (
     // The board and the panel fill the viewport under the 72px top bar; columns scroll on their own.
     <div className="flex h-[calc(100dvh-72px)] min-h-[640px] flex-col gap-3 px-7 pt-[22px] pb-7">
-      <OrdersHeader enabled={alertsEnabled} onToggle={() => setAlertsEnabled((enabled) => !enabled)} />
+      <OrdersHeader
+        enabled={alertsEnabled}
+        onToggle={() => setAlertsEnabled((enabled) => !enabled)}
+        onNewOrder={offline ? undefined : () => setEntryOpen(true)}
+      />
       <OrderMetrics metrics={getAlertMetrics(orders, now)} />
       <OrderToolbar
         query={query}
@@ -163,6 +174,7 @@ export function OrdersScreen() {
           onConfirm={confirmCancel}
         />
       )}
+      {entryOpen && <NewOrderPanel onClose={() => setEntryOpen(false)} onCreated={handleCreated} />}
     </div>
   );
 }
