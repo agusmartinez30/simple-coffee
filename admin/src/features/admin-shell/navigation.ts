@@ -1,17 +1,4 @@
-import {
-  Armchair,
-  BookOpen,
-  ClipboardList,
-  History,
-  LayoutDashboard,
-  LayoutGrid,
-  Package,
-  ReceiptText,
-  Settings,
-  Tags,
-  UsersRound,
-  type LucideIcon,
-} from "lucide-react";
+import { BookOpen, ClipboardList, Package, Settings, Tags, type LucideIcon } from "lucide-react";
 
 export const BRAND_NAME = "Café Central";
 
@@ -27,27 +14,16 @@ export type NavItem = {
 };
 
 /**
- * `section`: 10A top bar ("Café Central · Resumen", connection pill, compact profile).
- * `location`: 02 top bar (branch and shift, round notifications button, larger profile), reused by
- *   Gestión de mesas, which has no export.
- * `live-location`: 03 top bar (branch and shift plus an "En vivo" pill and 12/10px profile copy),
- *   reused by 04, whose 11/9px profile copy maps to the same 12/10px scale.
- * `verified-location`: 05 top bar, like `live-location` but with a "Datos verificados" pill and a
+ * `section`: 10A top bar ("Café Central · Carta digital", connection pill, compact profile).
+ * `live-location`: 03 top bar (branch and shift plus an "En vivo" pill and 12/10px profile copy).
+ * `admin-location`: 06 top bar, the branch without the shift plus an "Administrador" pill and a
  *   notifications button without the unread dot.
- * `admin-location`: 06 top bar, the branch without the shift plus an "Administrador" pill and the
- *   dot-less bell of 05.
  * `catalog`: 07 top bar, "Café Central · Carta digital" with a "Sincronizado" pill and the dot-less
- *   bell of 05; 08 reuses it titled "Café Central · Organización de la carta" (`topbarTitle`).
+ *   bell of 06; 08 reuses it titled "Café Central · Organización de la carta" (`topbarTitle`).
  */
-export type TopbarVariant =
-  | "section"
-  | "location"
-  | "live-location"
-  | "verified-location"
-  | "admin-location"
-  | "catalog";
+export type TopbarVariant = "section" | "live-location" | "admin-location" | "catalog";
 
-/** Branch and shift shown by the `location` top bar. */
+/** Branch and shift shown by the `live-location` top bar. */
 export const TOPBAR_LOCATION = `${BRAND_NAME} · Sede Centro · Turno mañana`;
 
 /** Title of the `catalog` top bar. */
@@ -59,24 +35,9 @@ export const TOPBAR_MENU_ORGANIZATION = `${BRAND_NAME} · Organización de la ca
 /** Branch alone, as the `admin-location` top bar shows it. */
 export const TOPBAR_BRANCH = `${BRAND_NAME} · Sede Centro`;
 
-/**
- * Sidebar modules in the order of the 10A export, plus "Personal y permisos" (from 12A),
- * which the 10A sidebar omits.
- */
+/** Sidebar modules in the order of the 10A export. */
 export const NAV_ITEMS: readonly NavItem[] = [
-  { id: "overview", label: "Resumen", href: "/", icon: LayoutDashboard },
-  { id: "tables", label: "Mesas", href: "/tables", icon: Armchair, topbar: "location" },
-  // Its "Códigos QR" tab (`?view=qr`) replaced the former "Mesas y códigos QR" module (`/tables/qr`).
-  { id: "table-management", label: "Gestión de mesas", href: "/tables/management", icon: LayoutGrid, topbar: "location" },
   { id: "orders", label: "Pedidos", href: "/orders", icon: ClipboardList, topbar: "live-location" },
-  {
-    id: "bill-requests",
-    label: "Solicitudes de cuenta",
-    href: "/bill-requests",
-    icon: ReceiptText,
-    topbar: "live-location",
-  },
-  { id: "history", label: "Historial", href: "/history", icon: History, topbar: "verified-location" },
   { id: "menu", label: "Carta digital", href: "/menu", icon: BookOpen },
   { id: "products", label: "Productos", href: "/menu/products", icon: Package, topbar: "catalog" },
   {
@@ -89,7 +50,6 @@ export const NAV_ITEMS: readonly NavItem[] = [
   },
   // `/settings` redirects to its only section, `/settings/payments` (06), which uses the 06 top bar.
   { id: "settings", label: "Configuración", href: "/settings", icon: Settings, topbar: "admin-location" },
-  { id: "staff", label: "Personal y permisos", href: "/staff", icon: UsersRound },
 ];
 
 function normalizePath(pathname: string): string {
@@ -117,7 +77,7 @@ export function findActiveNavItem(
   return best;
 }
 
-/** Top bar heading, e.g. "Café Central · Resumen". */
+/** Top bar heading, e.g. "Café Central · Carta digital". */
 export function getSectionTitle(pathname: string): string {
   const item = findActiveNavItem(pathname);
   return item ? `${BRAND_NAME} · ${item.label}` : BRAND_NAME;

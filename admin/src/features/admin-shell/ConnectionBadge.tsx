@@ -2,17 +2,16 @@ import clsx from "clsx";
 
 type ConnectionBadgeProps = {
   /**
-   * `online`: 10A "Live Connection" pill. `live`: 03 "Connection Status" pill. `verified`: 05
-   * "History Sync Status" pill (same shape as `live`). `synced`: 07 "Catalog Sync" pill (same shape).
+   * `online`: 10A "Live Connection" pill. `live`: 03 "Connection Status" pill. `synced`: 07
+   * "Catalog Sync" pill (same shape as `live`).
    */
-  variant?: "online" | "live" | "verified" | "synced";
+  variant?: "online" | "live" | "synced";
   className?: string;
 };
 
 const BADGE_LABELS = {
   online: "En línea",
   live: "En vivo",
-  verified: "Datos verificados",
   synced: "Sincronizado",
 } as const;
 

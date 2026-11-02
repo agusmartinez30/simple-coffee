@@ -1,1 +1,0 @@
-export { TableQrPanel } from "./TableQrPanel";

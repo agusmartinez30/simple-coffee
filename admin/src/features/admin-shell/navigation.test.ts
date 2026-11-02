@@ -4,17 +4,11 @@ import { NAV_ITEMS, findActiveNavItem, getSectionTitle, getTopbarConfig } from "
 describe("NAV_ITEMS", () => {
   it("lists every admin module in the sidebar order of the designs", () => {
     expect(NAV_ITEMS.map((item) => item.label)).toEqual([
-      "Resumen",
-      "Mesas",
-      "Gestión de mesas",
       "Pedidos",
-      "Solicitudes de cuenta",
-      "Historial",
       "Carta digital",
       "Productos",
       "Categorías y momentos",
       "Configuración",
-      "Personal y permisos",
     ]);
   });
 
@@ -25,14 +19,14 @@ describe("NAV_ITEMS", () => {
 });
 
 describe("findActiveNavItem", () => {
-  it("matches the overview only on the root path", () => {
-    expect(findActiveNavItem("/")?.id).toBe("overview");
+  it("matches no module on the root path, which redirects to the orders", () => {
+    expect(findActiveNavItem("/")).toBeNull();
     expect(findActiveNavItem("/orders")?.id).toBe("orders");
   });
 
   it("prefers the most specific nested route", () => {
-    expect(findActiveNavItem("/tables")?.id).toBe("tables");
-    expect(findActiveNavItem("/tables/management")?.id).toBe("table-management");
+    expect(findActiveNavItem("/menu")?.id).toBe("menu");
+    expect(findActiveNavItem("/menu/categories")?.id).toBe("categories");
     expect(findActiveNavItem("/menu/products/42")?.id).toBe("products");
     expect(findActiveNavItem("/settings/payments")?.id).toBe("settings");
   });
@@ -45,8 +39,8 @@ describe("findActiveNavItem", () => {
 
 describe("getSectionTitle", () => {
   it("prefixes the active module with the brand name", () => {
-    expect(getSectionTitle("/")).toBe("Café Central · Resumen");
-    expect(getSectionTitle("/bill-requests")).toBe("Café Central · Solicitudes de cuenta");
+    expect(getSectionTitle("/menu")).toBe("Café Central · Carta digital");
+    expect(getSectionTitle("/orders")).toBe("Café Central · Pedidos");
   });
 
   it("falls back to the brand name alone", () => {
@@ -56,7 +50,7 @@ describe("getSectionTitle", () => {
 
 describe("getTopbarConfig", () => {
   it("keeps the section title of 10A by default", () => {
-    expect(getTopbarConfig("/")).toEqual({ variant: "section", title: "Café Central · Resumen" });
+    expect(getTopbarConfig("/unknown")).toEqual({ variant: "section", title: "Café Central" });
     expect(getTopbarConfig("/menu")).toEqual({
       variant: "section",
       title: "Café Central · Carta digital",
@@ -78,20 +72,6 @@ describe("getTopbarConfig", () => {
     });
   });
 
-  it("reuses the 03 live top bar on the 04 bill requests screen", () => {
-    expect(getTopbarConfig("/bill-requests")).toEqual({
-      variant: "live-location",
-      title: "Café Central · Sede Centro · Turno mañana",
-    });
-  });
-
-  it("shows the verified-data pill on the 05 collections history screen", () => {
-    expect(getTopbarConfig("/history")).toEqual({
-      variant: "verified-location",
-      title: "Café Central · Sede Centro · Turno mañana",
-    });
-  });
-
   it("shows the catalogue title and the synced pill on the 07 products screen only", () => {
     expect(getTopbarConfig("/menu/products")).toEqual({
       variant: "catalog",
@@ -106,19 +86,4 @@ describe("getTopbarConfig", () => {
       title: "Café Central · Organización de la carta",
     });
   });
-
-  it("shows the branch and shift on the 02 tables screen", () => {
-    expect(getTopbarConfig("/tables")).toEqual({
-      variant: "location",
-      title: "Café Central · Sede Centro · Turno mañana",
-    });
-  });
-
-  it("reuses the 02 branch and shift top bar on the table management screen", () => {
-    expect(getTopbarConfig("/tables/management")).toEqual({
-      variant: "location",
-      title: "Café Central · Sede Centro · Turno mañana",
-    });
-  });
-
 });
