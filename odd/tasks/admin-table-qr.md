@@ -42,8 +42,8 @@ mock-era `table-qr`, `venue` and `table-management` features. The API already se
   Route: delegated. Commit `da6026c`.
 - [x] T3 Screen: page route, `TableQrScreen`, `use-table-qr.ts`, `TableList`, `QrDetail`, `RegenerateDialog`,
   and a `NAV_ITEMS` entry. Route: delegated. Commit `38313db`.
-- [ ] T4 Printing: `print-card.ts`, `print-selection.ts`, `BulkPrintModal`, and the print sheets, cards and portal.
-  Route: delegated.
+- [x] T4 Printing: `print-card.ts`, `print-selection.ts`, `BulkPrintModal`, and the print sheets, cards and portal.
+  Route: delegated. Commit `e1aa0aa`.
 
 ## Acceptance criteria
 - `/tables/qr` lists the tables from `GET /tables/config`.
@@ -88,6 +88,19 @@ mock-era `table-qr`, `venue` and `table-management` features. The API already se
   applies the API's configuration with a success notice; 404 reloads the list; 401 signs out (auth guard → /login).
   Tables without a credential offer "Generar código QR" (the API's rotation issues the first one). `getQrFileName`
   moved to `qr-file-name.ts` (the downloads need it before the print card). No `?state=` forced variants.
+- T4 (route: delegated; ~685 added / 14 deleted, ~170 of them tests; card, sheets and portal restored from `2813bbd^`).
+  RED observed: `print-card.test.ts` and `print-selection.test.ts` failed (modules not found) before GREEN; the
+  selection spec was rewritten over `TableQr` fixtures (the old one read `@/mocks/service-day`) and extended with the
+  bulk-print state and view. Checks: `vitest run` 48 files / 529 tests passed; `tsc --noEmit` clean; `npm run lint`
+  clean; `next build` ok (`/tables/qr` static). Commit `e1aa0aa`.
+- T4 decisions: single printing lives in the QR panel ("Imprimir tarjeta" prints the selected table's 09D card through
+  `PrintPortal`, "Tarjeta PNG" downloads it at 960px); selection printing is the "Imprimir códigos QR" modal (space,
+  A6/compact size, checklist, A4 preview, "Imprimir o guardar PDF"), built on the shared `Modal` instead of the old
+  fixed 09E overlay so it works below `lg`. Only one print root renders at a time (sheets while the modal is open, else
+  the selected card). No list checkboxes: the modal's checklist is the selection. Dropped the old 09D "material" view
+  and its `SheetCard`.
+- Pending: signed-in manual smoke against a running API (load, copy, PNG/SVG, print single and bulk, regenerate and
+  reload); the customer web app does not read `?mesa=&qr=` yet (out of scope).
 
 ## Next step
-T1–T4 by one delegated writer, with one commit per task.
+All tasks done. Run the signed-in smoke, review the branch and decide delivery (push / PR `feat/admin-table-qr`).
