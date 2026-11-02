@@ -5,7 +5,7 @@
     "buildCommand": "pnpm install --frozen-lockfile --prod=false && pnpm prisma generate && pnpm build"
   },
   "deploy": {
-    "startCommand": "pnpm prisma migrate deploy && pnpm start:prod",
+    "startCommand": "pnpm prisma migrate deploy && pnpm start",
     "healthcheckPath": "/api/v1/health",
     "healthcheckTimeout": 120,
     "restartPolicyType": "ON_FAILURE",
