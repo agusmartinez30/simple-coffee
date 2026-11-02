@@ -23,9 +23,9 @@ export function ComingSoon({ moduleId }: ComingSoonProps) {
         <p className="text-[13px]/[19px] text-muted">
           Este módulo todavía no está disponible en el prototipo.
         </p>
-        {moduleId !== "overview" && (
-          <Link href="/" className="text-[12px] font-bold text-brand hover:underline">
-            Volver al resumen →
+        {moduleId !== "orders" && (
+          <Link href="/orders" className="text-[12px] font-bold text-brand hover:underline">
+            Volver a pedidos →
           </Link>
         )}
       </div>

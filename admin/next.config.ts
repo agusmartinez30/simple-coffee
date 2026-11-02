@@ -10,9 +10,11 @@ const nextConfig: NextConfig = {
   /* config options here */
   cacheComponents: true,
   partialPrefetching: true,
-  // Payment settings live under Configuración; query strings (`?state=`) pass through.
+  // Pedidos is the landing module; payment settings live under Configuración; query strings
+  // (`?state=`) pass through.
   redirects() {
     return [
+      { source: "/", destination: "/orders", permanent: false },
       { source: "/settings", destination: "/settings/payments", permanent: false },
       { source: "/payments", destination: "/settings/payments", permanent: false },
     ];

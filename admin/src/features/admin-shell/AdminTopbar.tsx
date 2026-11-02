@@ -14,10 +14,10 @@ const ROLE_LABELS: Record<StaffRole, string> = {
 };
 
 /**
- * Round "Notifications" button with the unread dot of the 02 (8px, outlined) or 03 (7px) top bar,
- * or without a dot and with the 17px bell of 05.
+ * Round "Notifications" button with the 7px unread dot of the 03 top bar, or without a dot and
+ * with the 17px bell of 06.
  */
-function NotificationsButton({ dot = "outlined" }: { dot?: "outlined" | "small" | "none" }) {
+function NotificationsButton({ dot }: { dot: "small" | "none" }) {
   if (dot === "none") {
     return (
       <button
@@ -29,7 +29,6 @@ function NotificationsButton({ dot = "outlined" }: { dot?: "outlined" | "small" 
       </button>
     );
   }
-  const smallDot = dot === "small";
   return (
     <button
       type="button"
@@ -37,24 +36,17 @@ function NotificationsButton({ dot = "outlined" }: { dot?: "outlined" | "small" 
       className="relative size-10 shrink-0 rounded-full bg-cream text-ink"
     >
       <Bell size={18} aria-hidden="true" className="absolute top-[11px] left-[11px]" />
-      <span
-        aria-hidden="true"
-        className={
-          smallDot
-            ? "absolute top-2 left-[25px] size-[7px] rounded-full bg-danger"
-            : "absolute top-[7px] left-[26px] size-2 rounded-full bg-danger outline-2 -outline-offset-1 outline-white"
-        }
-      />
+      <span aria-hidden="true" className="absolute top-2 left-[25px] size-[7px] rounded-full bg-danger" />
     </button>
   );
 }
 
 /**
  * White top bar ("AdminTopbar" / "Topbar · Desktop"). Modules pick the layout of their
- * export through `NavItem.topbar`: the 10A section title, the 02 branch and shift, the 03
- * branch and shift with the "En vivo" pill (or 05 "Datos verificados"), the 06 branch with the
- * "Administrador" pill, or the 07 "Carta digital" title with the "Sincronizado" pill. The staff profile is the signed-in member from `GET /auth/me`
- * (blank until it answers).
+ * export through `NavItem.topbar`: the 10A section title, the 03 branch and shift with the
+ * "En vivo" pill, the 06 branch with the "Administrador" pill, or the 07 "Carta digital" title with
+ * the "Sincronizado" pill. The staff profile is the signed-in member from `GET /auth/me` (blank
+ * until it answers).
  */
 export function AdminTopbar() {
   const pathname = usePathname();
@@ -67,23 +59,10 @@ export function AdminTopbar() {
   return (
     <header className="sticky top-0 z-10 flex h-[72px] shrink-0 items-center justify-between border-b border-line bg-surface px-7">
       <h1 className="text-[13px] font-semibold whitespace-nowrap text-ink">{title}</h1>
-      {variant === "location" && (
-        <div className="flex items-center gap-[18px]">
-          <NotificationsButton />
-          <StaffProfile name={staffName} role={staffRole} />
-        </div>
-      )}
       {variant === "live-location" && (
         <div className="flex items-center gap-4">
           <ConnectionBadge variant="live" />
           <NotificationsButton dot="small" />
-          <StaffProfile name={staffName} role={staffRole} compact />
-        </div>
-      )}
-      {variant === "verified-location" && (
-        <div className="flex items-center gap-4">
-          <ConnectionBadge variant="verified" />
-          <NotificationsButton dot="none" />
           <StaffProfile name={staffName} role={staffRole} compact />
         </div>
       )}
