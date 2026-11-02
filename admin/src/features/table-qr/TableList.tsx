@@ -2,7 +2,6 @@
 
 import clsx from "clsx";
 import { ChevronDown, Search } from "lucide-react";
-import type { ReactNode } from "react";
 import type { QrSpace, TableQr } from "./table-qr-types";
 import { QR_STATUS_LABELS, getQrStatus, type QrStatus, type SpaceFilter } from "./table-qr-view";
 
@@ -72,16 +71,13 @@ type TableListProps = {
   filtered: boolean;
   selectedId: string | null;
   onSelect: (id: string) => void;
-  /** Extra control at the start of each row (the print selection checkbox). */
-  renderLeading?: (table: TableQr) => ReactNode;
 };
 
 /** Tables by number with their space and QR status; the selected one shows in the QR panel. */
-export function TableList({ tables, filtered, selectedId, onSelect, renderLeading }: TableListProps) {
+export function TableList({ tables, filtered, selectedId, onSelect }: TableListProps) {
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col overflow-hidden rounded-card bg-surface outline-1 -outline-offset-[0.5px] outline-line">
       <div className="flex h-9 shrink-0 items-center gap-3 bg-sand px-3 text-[11px] font-bold text-muted">
-        {renderLeading && <span className="w-5 shrink-0" aria-hidden="true" />}
         <span className="flex-1">MESA</span>
         <span className="hidden w-[130px] sm:block">ESPACIO</span>
         <span className="w-[110px]">QR</span>
@@ -102,7 +98,6 @@ export function TableList({ tables, filtered, selectedId, onSelect, renderLeadin
                   selected ? "bg-brand-wash" : "hover:bg-cream",
                 )}
               >
-                {renderLeading?.(table)}
                 <button
                   type="button"
                   aria-current={selected ? "true" : undefined}

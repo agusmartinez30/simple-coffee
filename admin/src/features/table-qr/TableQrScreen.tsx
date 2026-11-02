@@ -1,13 +1,25 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { CircleCheck, LoaderCircle, QrCode as QrCodeIcon, RotateCw, TriangleAlert, X } from "lucide-react";
+import { CircleCheck, Download, LoaderCircle, Printer, QrCode as QrCodeIcon, RotateCw, TriangleAlert, X } from "lucide-react";
 import { Notice } from "@/shared/ui";
+import { BulkPrintModal } from "./BulkPrintModal";
+import { buildCardSvgMarkup } from "./print-card";
+import {
+  getBulkPrintView,
+  getPrintableTables,
+  openBulkPrint,
+  toPrintCard,
+  type BulkPrintState,
+} from "./print-selection";
+import { PrintableCard } from "./PrintCards";
+import { PrintPortal, printDocument } from "./PrintPortal";
+import { PrintSheets } from "./PrintSheets";
 import { getQrFileName } from "./qr-file-name";
 import { copyText, downloadPng, downloadSvg } from "./qr-download";
 import { buildQrSvgMarkup } from "./qr-matrix";
 import { buildTableQrUrl } from "./qr-url";
-import { QrDetail, type DownloadFormat } from "./QrDetail";
+import { ActionButton, QrDetail, type DownloadFormat } from "./QrDetail";
 import { RegenerateDialog } from "./RegenerateDialog";
 import { getSelectedTable } from "./table-qr-state";
 import type { TableQr } from "./table-qr-types";
@@ -15,8 +27,9 @@ import { filterTables } from "./table-qr-view";
 import { TableList, TableToolbar } from "./TableList";
 import { useTableQr } from "./use-table-qr";
 
-/** PNG exports are rasterized at 1024px. */
+/** PNG exports are rasterized at 1024px (QR) and 960px (card, three times its 320px size). */
 const QR_PNG_WIDTH = 1024;
+const CARD_PNG_WIDTH = 960;
 
 const tableUrl = (table: TableQr) => (table.qr ? buildTableQrUrl({ number: table.number, token: table.qr.token }) : null);
 
@@ -59,13 +72,18 @@ function EmptyTables() {
 
 /**
  * QR de mesas. Container: `useTableQr` owns the tables from the API and the token rotation; this
- * screen derives the filtered list and the selected table's URL, and handles copy and downloads.
- * Table and space configuration live elsewhere: this module only shows, exports and rotates codes.
+ * screen derives the filtered list and the selected table's URL, handles copy and downloads, and
+ * owns printing: the selected table's card, or a selection of cards on A4 sheets ("Imprimir
+ * códigos QR"). Only enabled tables with an active QR print. Table and space configuration live
+ * elsewhere: this module only shows, exports, prints and rotates codes.
  */
 export function TableQrScreen() {
   const { state, dispatch, retry, confirmRegenerate } = useTableQr();
   const [now] = useState(() => new Date());
+  const [bulk, setBulk] = useState<BulkPrintState | null>(null);
   const selected = getSelectedTable(state);
+  const selectedCard = selected && getPrintableTables([selected]).length > 0 ? toPrintCard(selected) : null;
+  const bulkView = bulk ? getBulkPrintView(state.config.tables, bulk) : null;
   const visibleTables = useMemo(() => filterTables(state.config.tables, state.filters), [state.config.tables, state.filters]);
 
   const downloadQr = (table: TableQr, format: DownloadFormat) => {
@@ -75,6 +93,12 @@ export function TableQrScreen() {
     const fileName = getQrFileName(table.label, "qr", format);
     if (format === "svg") downloadSvg(svg, fileName);
     else void downloadPng(svg, fileName, QR_PNG_WIDTH);
+  };
+
+  const downloadCard = () => {
+    if (!selectedCard) return;
+    const svg = buildCardSvgMarkup({ label: selectedCard.label, url: selectedCard.url });
+    void downloadPng(svg, getQrFileName(selectedCard.label, "tarjeta", "png"), CARD_PNG_WIDTH);
   };
 
   let body;
@@ -110,6 +134,14 @@ export function TableQrScreen() {
             onCopy={() => (selectedUrl ? copyText(selectedUrl) : Promise.resolve(false))}
             onDownload={(format) => downloadQr(selected, format)}
             onRegenerate={() => dispatch({ type: "open-regenerate" })}
+            extraActions={
+              selectedCard && (
+                <div className="flex w-full shrink-0 gap-2">
+                  <ActionButton label="Imprimir tarjeta" icon={Printer} onClick={printDocument} />
+                  <ActionButton label="Tarjeta PNG" ariaLabel="Descargar tarjeta PNG" icon={Download} onClick={downloadCard} />
+                </div>
+              )
+            }
           />
         )}
       </div>
@@ -118,9 +150,22 @@ export function TableQrScreen() {
 
   return (
     <div className="flex min-h-[calc(100dvh-var(--topbar-h))] flex-col gap-3 px-4 pt-4 pb-6 lg:h-[calc(100dvh-var(--topbar-h))] lg:min-h-[640px] lg:px-7 lg:pt-[22px] lg:pb-7">
-      <header className="flex w-full shrink-0 flex-col gap-[3px]">
-        <h2 className="text-[20px] leading-tight font-extrabold text-ink lg:text-[24px]">QR de mesas</h2>
-        <p className="text-[12px] text-muted">Descargá, imprimí o regenerá el código QR de cada mesa.</p>
+      <header className="flex w-full shrink-0 flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div className="flex flex-col gap-[3px]">
+          <h2 className="text-[20px] leading-tight font-extrabold text-ink lg:text-[24px]">QR de mesas</h2>
+          <p className="text-[12px] text-muted">Descargá, imprimí o regenerá el código QR de cada mesa.</p>
+        </div>
+        {state.load === "ready" && state.config.tables.length > 0 && (
+          <button
+            type="button"
+            aria-haspopup="dialog"
+            onClick={() => setBulk(openBulkPrint(state.config.tables))}
+            className="flex h-10 items-center justify-center gap-[7px] rounded-field bg-surface px-[13px] text-ink outline-1 -outline-offset-[0.5px] outline-line hover:bg-cream"
+          >
+            <Printer size={14} aria-hidden="true" className="shrink-0" />
+            <span className="text-[12px] font-bold whitespace-nowrap">Imprimir códigos QR</span>
+          </button>
+        )}
       </header>
       {state.notice && (
         <div className="flex w-full items-center gap-2">
@@ -148,6 +193,31 @@ export function TableQrScreen() {
           onCancel={() => dispatch({ type: "cancel-regenerate" })}
           onConfirm={confirmRegenerate}
         />
+      )}
+      {bulk && bulkView && (
+        <BulkPrintModal
+          tables={state.config.tables}
+          spaces={state.config.spaces}
+          bulk={bulk}
+          view={bulkView}
+          onChange={setBulk}
+          onClose={() => setBulk(null)}
+          onPrint={printDocument}
+        />
+      )}
+      {/* Only one print root at a time: the selection's sheets while the modal is open, else the selected card. */}
+      {bulkView ? (
+        <PrintPortal>
+          <PrintSheets sheets={bulkView.sheets} perSheet={bulkView.perSheet} />
+        </PrintPortal>
+      ) : (
+        selectedCard && (
+          <PrintPortal>
+            <div className="flex justify-center pt-[10mm]">
+              <PrintableCard card={selectedCard} />
+            </div>
+          </PrintPortal>
+        )
       )}
     </div>
   );
