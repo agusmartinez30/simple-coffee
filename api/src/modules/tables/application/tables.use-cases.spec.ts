@@ -10,6 +10,7 @@ import {
   TableNotFoundError,
   TableOverlapError,
 } from '../domain/tables-errors.js';
+import { FindTableByNumber } from './find-table-by-number.js';
 import { RegenerateTableQr, ResolveTableQr } from './qr.use-cases.js';
 import { CreateSpace, DeleteSpace, MoveSpace, UpdateSpace } from './spaces.use-cases.js';
 import { MoveTable, ResizeTable, SetTableShape } from './table-layout.use-cases.js';
@@ -219,5 +220,13 @@ describe('tables use cases', () => {
       await new SetTableEnabled(deps).execute('tbl_02', false);
       await expect(resolve.execute({ number: 2, token: 'Tok02abcde' })).rejects.toBeInstanceOf(TableNotFoundError);
     });
+  });
+
+  it('looks a table up by number for other modules, disabled ones included', async () => {
+    const find = new FindTableByNumber(deps);
+    await expect(find.execute(3)).resolves.toEqual({ number: 3, label: 'Mesa 03', spaceName: 'Terraza', enabled: true });
+    await new SetTableEnabled(deps).execute('tbl_03', false);
+    await expect(find.execute(3)).resolves.toMatchObject({ number: 3, enabled: false });
+    await expect(find.execute(9)).resolves.toBeNull();
   });
 });

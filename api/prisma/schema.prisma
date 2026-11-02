@@ -39,6 +39,8 @@ model StaffUser {
   sessions            Session[]
   passwordResetTokens PasswordResetToken[]
   issuedQrCredentials TableQrCredential[]
+  createdOrders       Order[]              @relation("OrderCreatedBy")
+  orderEvents         OrderEvent[]
 
   @@map("staff_users")
 }
@@ -337,4 +339,102 @@ model CatalogOption {
 
   @@index([groupId])
   @@map("catalog_options")
+}
+
+// ── orders (src/modules/orders) ──────────────────────────────────────────
+// Orders are priced from the catalog when created and keep a snapshot of the table, products,
+// options and prices, so catalog or table changes never alter history. `productId` and
+// `tableNumber` are therefore plain values, not foreign keys. Money is integer ARS pesos.
+
+enum OrderStatus {
+  RECEIVED
+  PREPARING
+  DELIVERED
+  CANCELLED
+}
+
+enum OrderCancellationReason {
+  PRODUCT_UNAVAILABLE
+  CUSTOMER_REQUEST
+  ORDER_ERROR
+}
+
+enum OrderSource {
+  STAFF
+  TABLE
+}
+
+model Order {
+  id                 String                   @id @default(cuid())
+  /// Visible number ("Pedido #1051"); the migration starts the sequence at 1001.
+  number             Int                      @unique @default(autoincrement())
+  tableNumber        Int
+  tableLabel         String
+  spaceName          String
+  customerName       String
+  note               String?
+  status             OrderStatus              @default(RECEIVED)
+  /// Set only when cancelled.
+  cancellationReason OrderCancellationReason?
+  source             OrderSource
+  /// Staff member who loaded the order; null for table orders.
+  createdById        String?
+  createdBy          StaffUser?               @relation("OrderCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  /// Sum of unit price × quantity of the items.
+  total              Int
+  items              OrderItem[]
+  events             OrderEvent[]
+  createdAt          DateTime                 @default(now())
+  updatedAt          DateTime                 @updatedAt
+
+  @@index([createdAt])
+  @@map("orders")
+}
+
+model OrderItem {
+  id          String            @id @default(cuid())
+  orderId     String
+  order       Order             @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  /// Catalog product id (no foreign key: the snapshot outlives catalog changes).
+  productId   String
+  productName String
+  sku         String
+  /// 1 to 99.
+  quantity    Int
+  /// Product price plus the chosen option deltas.
+  unitPrice   Int
+  note        String?
+  position    Int
+  options     OrderItemOption[]
+
+  @@index([orderId])
+  @@map("order_items")
+}
+
+model OrderItemOption {
+  id         String    @id @default(cuid())
+  itemId     String
+  item       OrderItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  groupTitle String
+  optionName String
+  priceDelta Int
+  position   Int
+
+  @@index([itemId])
+  @@map("order_item_options")
+}
+
+/// Status history, one row per transition.
+model OrderEvent {
+  id      String      @id @default(cuid())
+  orderId String
+  order   Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  kind    OrderStatus
+  at      DateTime
+  /// Staff member who moved the order; null for customer actions.
+  actorId String?
+  actor   StaffUser?  @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([orderId])
+  @@map("order_events")
 }

@@ -1,5 +1,6 @@
 import { Module, type Provider } from '@nestjs/common';
 import { AuthModule } from '../auth/auth.module.js';
+import { FindTableByNumber } from './application/find-table-by-number.js';
 import { RegenerateTableQr, ResolveTableQr } from './application/qr.use-cases.js';
 import { CreateSpace, DeleteSpace, MoveSpace, UpdateSpace } from './application/spaces.use-cases.js';
 import { MoveTable, ResizeTable, SetTableShape } from './application/table-layout.use-cases.js';
@@ -26,6 +27,7 @@ const useCaseProviders: Provider[] = [
   SetTableShape,
   RegenerateTableQr,
   ResolveTableQr,
+  FindTableByNumber,
 ].map((UseCase: new (deps: TablesDeps) => unknown) => ({
   provide: UseCase,
   useFactory: (deps: TablesDeps) => new UseCase(deps),
@@ -52,5 +54,7 @@ const useCaseProviders: Provider[] = [
     },
     ...useCaseProviders,
   ],
+  // The orders module checks and snapshots tables through this service.
+  exports: [FindTableByNumber],
 })
 export class TablesModule {}

@@ -54,8 +54,15 @@ Out of scope: moments, collections, public/table endpoints, table sessions, bill
   - Slice branch `feat/api-catalog-orders-seed`. `api/prisma/seed-catalog.ts`: skips when any catalog
     row exists, else one transaction; data validated with domain rules; deterministic ids (`prd_<slug>`).
     9 categories, 13 products, 4 groups, 9 options. Vitest now includes `prisma/**/*.spec.ts`.
+  - Commit `671ed0b`. Review: medium (slice_budget_reached); user declined for this candidate.
   - Evidence: typecheck, lint clean; 157 tests passed; build OK; db:seed run twice (second kept data).
-- [ ] T3 — `orders` module: schema + migration, domain (pricing, lifecycle), use cases, HTTP, tests (route: delegated writer)
+- [x] T3 — `orders` module: schema + migration, domain (pricing, lifecycle), use cases, HTTP, tests (route: delegated writer)
+  - Slice branch `feat/api-catalog-orders-orders`. Service day = `America/Argentina/Buenos_Aires`
+    constant (venue exports no timezone service yet). No FK on productId (snapshots). New exported
+    `FindTableByNumber` in tables. Sequence starts at #1001. Status changes guarded by expected status.
+  - Follow-ups: read venue timezone once venue exports a service; admin must map cancellation
+    reasons (API snake_case vs admin kebab-case).
+  - Evidence: prisma validate, typecheck, lint clean; 187 tests passed; build OK; db:deploy applied.
 
 ## Delivery
 
