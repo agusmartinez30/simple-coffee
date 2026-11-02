@@ -1,4 +1,4 @@
-import { BookOpen, ClipboardList, Package, Settings, Tags, type LucideIcon } from "lucide-react";
+import { BookOpen, ClipboardList, Package, QrCode, Settings, Tags, type LucideIcon } from "lucide-react";
 
 export const BRAND_NAME = "Café Central";
 
@@ -48,6 +48,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
     topbar: "catalog",
     topbarTitle: TOPBAR_MENU_ORGANIZATION,
   },
+  { id: "table-qr", label: "QR de mesas", href: "/tables/qr", icon: QrCode },
   // `/settings` redirects to its only section, `/settings/payments` (06), which uses the 06 top bar.
   { id: "settings", label: "Configuración", href: "/settings", icon: Settings, topbar: "admin-location" },
 ];
