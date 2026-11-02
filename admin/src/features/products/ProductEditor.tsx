@@ -1,7 +1,7 @@
 "use client";
 
 import clsx from "clsx";
-import { CircleAlert, Clock3, LockKeyhole, Maximize2, Plus, Save } from "lucide-react";
+import { ArrowLeft, CircleAlert, Clock3, LockKeyhole, Maximize2, Plus, Save } from "lucide-react";
 import type { EditorAction, EditorState, EditorView } from "./product-editor-state";
 import { CustomerProductPreview } from "./CustomerProductPreview";
 import { OptionGroupCard } from "./OptionGroupCard";
@@ -151,6 +151,14 @@ export function ProductEditor({ editor, view, onAction }: ProductEditorProps) {
   const { draft } = editor;
   return (
     <div className="flex min-h-[calc(100dvh-var(--topbar-h))] flex-col gap-3 px-4 pt-4 pb-6 lg:h-[calc(100dvh-var(--topbar-h))] lg:min-h-[760px] lg:gap-2.5 lg:px-7 lg:pt-[18px] lg:pb-3.5">
+      <button
+        type="button"
+        onClick={() => onAction({ type: "close-editor" })}
+        className="-ml-2 flex h-11 w-fit shrink-0 items-center gap-1.5 rounded-nav px-2 text-ink hover:bg-cream lg:h-8"
+      >
+        <ArrowLeft size={14} aria-hidden="true" />
+        <span className="text-[12px] font-bold">Volver</span>
+      </button>
       <header className="flex w-full shrink-0 flex-col gap-3 lg:h-[54px] lg:flex-row lg:items-center lg:justify-between lg:gap-0">
         <div className="flex min-w-0 flex-col gap-[3px]">
           <ProductsBreadcrumb current={view.breadcrumb} onAction={onAction} />
