@@ -55,12 +55,13 @@ never sees orders created elsewhere. The API now exposes orders (feature `api-ca
   - Built: `--topbar-h` (56/72px), sidebar in left `Drawer` below `lg`, `board-tabs.ts` tab model, `useIsDesktop` gates auto-select. Desktop meant unchanged.
   - Known gap: other modules' modals still hardcode `top-[72px] left-[220px]` backdrops.
   - Evidence: tsc, lint OK; 852 tests passed; build OK. No visual/browser check run.
+  - Commit `c103f09`. Review: medium; user declined for this candidate.
 
 ## Delivery
 
 Slice of the `feature-branch-chain` of `api-catalog-orders`: branch `feat/api-catalog-orders-admin-orders`
 on top of `feat/api-catalog-orders-orders`. No overlap with `refactor/admin-core-modules` in
-`features/orders`, `mocks/types.ts` or `features/auth`.
+`features/orders`, `mocks/types.ts` or `features/auth`; T3 does touch `features/admin-shell` (both branches edit `AdminTopbar.tsx`), so expect a small conflict there.
 
 ## Next step
 
