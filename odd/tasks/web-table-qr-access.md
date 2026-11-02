@@ -78,6 +78,11 @@ In `web/`: `npm test`, `npx tsc --noEmit`, `npm run lint`, `npx next build`.
 
 ## Progress
 - Branch `feat/web-table-qr-access` created from `main` (2897f62).
+- T1 `06ad555` feat(web): add table QR access data layer and API proxy.
+- T2 `ceb93d6` feat(web): validate the table QR on load with TableAccessProvider.
+- T3 `acf7e25` feat(web): gate Mi mesa on a validated table QR.
+- Pending: manual acceptance run against the API (`/?mesa=07&qr=4pX9kR2mL7`, regenerated QR, API down) — not
+  executed by the writer.
 
 ## Next step
-T1–T3 by one delegated writer, with one commit per task.
+Manual acceptance check in the browser, then the native review of the slice and a PR decision.
