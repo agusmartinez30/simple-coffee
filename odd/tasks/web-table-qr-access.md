@@ -55,8 +55,18 @@ a hardcoded `TABLE = { number: "07" }` (`web/src/mocks/table.ts:4`), so a QR nev
     mount effect (no `useSearchParams`/Suspense in the layout); `replaceState` keeps `history.state`, path, other
     params and hash. A run counter drops answers superseded by a newer check or the Strict Mode re-mount.
     Storage key `cafe-central:table-access:v1`.
-- [ ] T3 UI wiring: welcome badge, explore subtitle, `TableScreen` gate with `TableAccessCard` (09E), `customerName`,
+- [x] T3 UI wiring: welcome badge, explore subtitle, `TableScreen` gate with `TableAccessCard` (09E), `customerName`,
   and the mock cleanup. Route: delegated.
+  - Evidence: RED `npx vitest run src/features/table/table-access-copy` → "Cannot find module
+    './table-access-copy'"; GREEN → 7 tests passed. Full checks: `npm test` 20 files / 147 tests passed,
+    `npx tsc --noEmit` clean, `npm run lint` clean, `npx next build` succeeded. Commit: see Progress.
+  - Decisions: `WelcomeScreen` and `ExploreLanding` stay server components and use two client islands from
+    `table-access` (`ValidTableOnly`, `TableNumberText`). `TableScreen` gates before the session view; the pure
+    `getTableAccessView` maps idle/checking → loading card, invalid `missing` → "Escaneá el QR de tu mesa",
+    invalid `rejected` → 09E copy, offline → "Sin conexión" with "Reintentar". The card keeps the `BottomNav` and a
+    "Volver a la carta" action so the menu stays browsable; the `?state=` forced variants only apply once the table
+    is valid. `customerName` is `Mesa ${tableNumber}` (already padded by `formatTableNumber`). `TABLE`/`TableInfo`
+    keep only `cafeName`; `cafe-info.test.ts` needed no change.
 
 ## Acceptance criteria
 - `/?mesa=07&qr=<valid>` shows "Mesa 07", the URL is cleaned, and "Mi mesa" works. A reload keeps the table.

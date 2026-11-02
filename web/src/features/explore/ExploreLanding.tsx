@@ -3,6 +3,7 @@ import { Info, Search } from "lucide-react";
 import { MOMENTS } from "@/mocks/moments";
 import { TABLE } from "@/mocks/table";
 import { CartFloatingCta } from "@/features/cart";
+import { TableNumberText, ValidTableOnly } from "@/features/table-access";
 import { BottomDock, BottomNav } from "@/shared/ui";
 import { MomentCard } from "./MomentCard";
 
@@ -14,7 +15,11 @@ export function ExploreLanding() {
         <header className="flex flex-col gap-[13px]">
           <div className="flex items-center justify-between">
             <p className="text-[11px] font-bold tracking-[0.9px] text-brand uppercase">
-              {TABLE.cafeName} · Mesa {TABLE.number}
+              {TABLE.cafeName}
+              <ValidTableOnly>
+                {" "}
+                · Mesa <TableNumberText />
+              </ValidTableOnly>
             </p>
             <div className="flex gap-2">
               <Link

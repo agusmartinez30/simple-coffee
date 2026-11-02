@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, Coffee, ReceiptText, RefreshCw, Send } from "lucide-react";
-import { TABLE } from "@/mocks/table";
 import { useCart } from "@/features/cart";
+import { useTableAccess } from "@/features/table-access";
 import { getTableSummary, useTableSession, type PaymentMethod } from "@/features/table-session";
 import { delay, formatClockTime } from "@/shared/lib/delay";
 import { formatPrice } from "@/shared/lib/format-price";
@@ -20,10 +20,12 @@ import {
   StickyFooter,
 } from "@/shared/ui";
 import { AccountSummaryCard } from "./AccountSummaryCard";
+import { TableAccessCard } from "./TableAccessCard";
 import { BillRequestNotice } from "./BillRequestNotice";
 import { OrderCard } from "./OrderCard";
 import { PaymentMethodSheet } from "./PaymentMethodSheet";
 import { PendingOrder } from "./PendingOrder";
+import { getTableAccessView } from "./table-access-copy";
 import { TableHeading } from "./TableHeading";
 import { TABLE_VIEW_COPY } from "./table-copy";
 import { TABLE_FORCED_STATES, getTableView } from "./table-view";
@@ -34,7 +36,8 @@ const BILL_DELAY_MS = 900;
 
 /**
  * Screen 07 · Mi mesa: the guest's pending order (sent from here) above the table orders, and the bill
- * request with its payment method. The variant follows the table
+ * request with its payment method. Without a validated table QR it shows the access card
+ * instead (09E), so the account and ordering stay blocked. The variant follows the table
  * session; `?state=empty|error` forces it. It reads search params, so it must render inside
  * `<Suspense>`.
  */
@@ -42,6 +45,7 @@ export function TableScreen() {
   const router = useRouter();
   const forced = useScreenState(TABLE_FORCED_STATES);
   const { orders, hydrated, placeOrder, billRequest, requestBill } = useTableSession();
+  const access = useTableAccess();
   const cart = useCart();
   const [toggled, setToggled] = useState<ReadonlySet<string>>(new Set());
   const [retrying, setRetrying] = useState(false);
@@ -49,7 +53,20 @@ export function TableScreen() {
   const [billSheetOpen, setBillSheetOpen] = useState(false);
   const [requestingBill, setRequestingBill] = useState(false);
 
-  const header = <ScreenHeader title="Mi mesa" backHref="/explore" table={TABLE.number} className="mt-2" />;
+  const tableNumber = access.tableNumber;
+  const header = (
+    <ScreenHeader title="Mi mesa" backHref="/explore" table={tableNumber ?? undefined} className="mt-2" />
+  );
+
+  const accessView = getTableAccessView(access.state);
+  if (accessView || tableNumber === null) {
+    return (
+      <>
+        {header}
+        <TableAccessCard view={accessView ?? "checking"} onRetry={access.retry} />
+      </>
+    );
+  }
 
   if (!hydrated && !forced) {
     return (
@@ -90,7 +107,7 @@ export function TableScreen() {
     await delay(SEND_DELAY_MS);
     // Orders are placed from the table itself, so the table identifies who ordered.
     const result = placeOrder({
-      customerName: `Mesa ${TABLE.number}`,
+      customerName: `Mesa ${tableNumber}`,
       time: formatClockTime(new Date()),
       lines: cart.lines,
     });
@@ -153,7 +170,7 @@ export function TableScreen() {
           </StatusPill>
           <span className="text-[9.5px] text-muted">{statusMeta}</span>
         </div>
-        <AccountSummaryCard total={summary.total} orderCount={summary.orderCount} table={TABLE.number} />
+        <AccountSummaryCard total={summary.total} orderCount={summary.orderCount} table={tableNumber} />
         {billRequest && visibleOrders.length > 0 ? (
           <BillRequestNotice
             request={billRequest}

@@ -3,6 +3,7 @@ export {
   useTableAccess,
   type TableAccessContextValue,
 } from "./TableAccessProvider";
+export { TableNumberText, ValidTableOnly } from "./TableNumber";
 export {
   resolveTableQr,
   type AccessTable,

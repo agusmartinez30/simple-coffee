@@ -90,9 +90,7 @@ export type TableOrder = {
 };
 
 export type TableInfo = {
-  number: string;
   cafeName: string;
-  sharedAccount: boolean;
 };
 
 export type CafeLinkNetwork = "instagram" | "facebook" | "website";
