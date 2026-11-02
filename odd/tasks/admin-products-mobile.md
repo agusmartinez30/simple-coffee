@@ -46,6 +46,7 @@ shell already collapses to a drawer below `lg`, so the products screens overflow
   - Known gaps: no modal needed the full-screen fix; the form's `AvailabilitySwitch` (shared
     `ProductTags`) and the phone mock's chips/stepper keep their small sizes; inputs stay 12px
     (iOS may zoom on focus).
+  - Commit `0ba43a9`. Parent spot check: tsc OK. Slice review (main..0ba43a9, 463 lines): medium, `slice_budget_reached`; user declined for this candidate.
 
 ## Acceptance criteria
 
@@ -65,4 +66,4 @@ Strategy: `ask-on-risk`. Forecast ~300–450 authored changed lines. Branch `fea
 ## Progress
 
 - T1 done.
-- T2 done. Next: review slice + delivery decision.
+- T1 and T2 done. Next: visual check on a phone, then push/PR (user decision).
