@@ -19,8 +19,9 @@ type OptionGroupCardProps = {
 };
 
 const ICON_BUTTON = "flex shrink-0 items-center justify-center rounded-chip hover:bg-cream";
+/** Settings fields (and the icon buttons below) are 44px tall under `lg`, the export size from it. */
 const SETTING_INPUT =
-  "h-8 rounded-nav bg-surface px-2 text-[12px] text-ink outline-1 -outline-offset-[0.5px] focus:outline-2 focus:-outline-offset-1 focus:outline-brand";
+  "h-11 lg:h-8 rounded-nav bg-surface px-2 text-[12px] text-ink outline-1 -outline-offset-[0.5px] focus:outline-2 focus:-outline-offset-1 focus:outline-brand";
 
 /** Title, selection, required and maximum of the group, opened from the group header. */
 function GroupSettings({ group, errors, onAction }: Pick<OptionGroupCardProps, "group" | "errors" | "onAction">) {
@@ -49,17 +50,17 @@ function GroupSettings({ group, errors, onAction }: Pick<OptionGroupCardProps, "
           onChange={(event) =>
             onAction({ type: "set-group-selection", groupId, selection: event.target.value as OptionSelection })
           }
-          className={clsx(SETTING_INPUT, "cursor-pointer outline-line")}
+          className={clsx(SETTING_INPUT, "min-w-0 flex-1 cursor-pointer outline-line lg:flex-initial")}
         >
           <option value="single">Selección única</option>
           <option value="multiple">Selección múltiple</option>
         </select>
-        <label className="flex items-center gap-1.5 text-[11px] font-bold text-ink">
+        <label className="flex min-h-11 items-center gap-1.5 px-1 text-[11px] font-bold text-ink lg:min-h-0 lg:px-0">
           <input
             type="checkbox"
             checked={group.required}
             onChange={(event) => onAction({ type: "set-group-required", groupId, required: event.target.checked })}
-            className="size-3.5 accent-brand"
+            className="size-5 accent-brand lg:size-3.5"
           />
           Obligatorio
         </label>
@@ -89,7 +90,7 @@ function GroupSettings({ group, errors, onAction }: Pick<OptionGroupCardProps, "
         <button
           type="button"
           onClick={() => onAction({ type: "remove-group", groupId })}
-          className="flex h-7 items-center gap-1 rounded-[7px] px-1.5 text-danger hover:bg-danger-bg"
+          className="flex h-11 items-center gap-1 rounded-[7px] px-2 text-danger hover:bg-danger-bg lg:h-7 lg:px-1.5"
         >
           <Trash2 size={11} aria-hidden="true" />
           <span className="text-[11px] font-bold">Quitar grupo</span>
@@ -97,7 +98,7 @@ function GroupSettings({ group, errors, onAction }: Pick<OptionGroupCardProps, "
         <button
           type="button"
           onClick={() => onAction({ type: "finish-group-edit" })}
-          className="flex h-7 items-center rounded-[7px] bg-brand px-2.5 text-[11px] font-bold text-white hover:bg-brand/92"
+          className="flex h-11 items-center rounded-[7px] bg-brand px-4 text-[11px] font-bold text-white hover:bg-brand/92 lg:h-7 lg:px-2.5"
         >
           Listo
         </button>
@@ -109,7 +110,7 @@ function GroupSettings({ group, errors, onAction }: Pick<OptionGroupCardProps, "
 /**
  * "Group · Tamaño" / "Group · Extras": the group title and rule, its option rows with the price
  * label ("Incluido", "Sin cargo", "+$800"), the pencil to edit a row in place, the trash to remove
- * it, "Agregar opción" and the group settings.
+ * it, "Agregar opción" and the group settings. Below `lg` rows and controls are 44px tall.
  */
 export function OptionGroupCard({ group, meta, editingGroup, editingOptionId, errors, onAction }: OptionGroupCardProps) {
   const groupId = group.id;
@@ -130,7 +131,7 @@ export function OptionGroupCard({ group, meta, editingGroup, editingOptionId, er
           aria-label={`Configurar ${title}`}
           aria-expanded={editingGroup}
           onClick={() => onAction(editingGroup ? { type: "finish-group-edit" } : { type: "edit-group", groupId })}
-          className={clsx(ICON_BUTTON, "size-6", editingGroup ? "bg-brand-wash text-brand" : "text-muted hover:text-ink")}
+          className={clsx(ICON_BUTTON, "size-11 lg:size-6", editingGroup ? "bg-brand-wash text-brand" : "text-muted hover:text-ink")}
         >
           <Settings2 size={14} aria-hidden="true" />
         </button>
@@ -147,7 +148,7 @@ export function OptionGroupCard({ group, meta, editingGroup, editingOptionId, er
           if (option.id === editingOptionId) {
             return (
               <li key={option.id} className="flex flex-col gap-1">
-                <div className="flex h-[30px] items-center gap-1.5 rounded-[6px] bg-surface px-[7px] outline-1 -outline-offset-[0.5px] outline-brand">
+                <div className="flex h-12 items-center gap-1.5 rounded-[6px] bg-surface pr-0.5 pl-[7px] outline-1 -outline-offset-[0.5px] outline-brand lg:h-[30px] lg:px-[7px]">
                   <input
                     type="text"
                     autoFocus
@@ -162,7 +163,7 @@ export function OptionGroupCard({ group, meta, editingGroup, editingOptionId, er
                     onKeyDown={(event) => {
                       if (event.key === "Enter") onAction({ type: "finish-option-edit" });
                     }}
-                    className="h-6 min-w-0 flex-1 bg-transparent text-[12px] font-semibold text-ink outline-none placeholder:font-normal placeholder:text-muted"
+                    className="h-9 min-w-0 flex-1 bg-transparent lg:h-6 text-[12px] font-semibold text-ink outline-none placeholder:font-normal placeholder:text-muted"
                   />
                   <span aria-hidden="true" className="text-[11px] font-bold text-ink">
                     +$
@@ -179,13 +180,13 @@ export function OptionGroupCard({ group, meta, editingGroup, editingOptionId, er
                     onKeyDown={(event) => {
                       if (event.key === "Enter") onAction({ type: "finish-option-edit" });
                     }}
-                    className="h-6 w-14 rounded-chip bg-cream px-1.5 text-right text-[11px] font-bold text-ink outline-none"
+                    className="h-9 w-14 shrink-0 rounded-chip bg-cream lg:h-6 px-1.5 text-right text-[11px] font-bold text-ink outline-none"
                   />
                   <button
                     type="button"
                     aria-label={`Listo con ${label}`}
                     onClick={() => onAction({ type: "finish-option-edit" })}
-                    className={`${ICON_BUTTON} size-6 text-brand`}
+                    className={`${ICON_BUTTON} size-11 text-brand lg:size-6`}
                   >
                     <Check size={12} aria-hidden="true" />
                   </button>
@@ -203,12 +204,12 @@ export function OptionGroupCard({ group, meta, editingGroup, editingOptionId, er
             <li key={option.id} className="flex flex-col gap-1">
               <div
                 className={clsx(
-                  "flex h-[30px] items-center justify-between gap-2 rounded-[6px] px-[7px]",
+                  "flex h-11 items-center justify-between gap-2 rounded-[6px] pl-[7px] lg:h-[30px] lg:px-[7px]",
                   error && "bg-surface outline-1 -outline-offset-[0.5px] outline-danger",
                 )}
               >
-                <span className="truncate text-[12px] font-semibold text-ink">{label}</span>
-                <span className="flex shrink-0 items-center gap-1">
+                <span className="min-w-0 truncate text-[12px] font-semibold text-ink">{label}</span>
+                <span className="flex shrink-0 items-center lg:gap-1">
                   <span
                     className={clsx(
                       "mr-1 text-[11px] font-bold whitespace-nowrap",
@@ -221,7 +222,7 @@ export function OptionGroupCard({ group, meta, editingGroup, editingOptionId, er
                     type="button"
                     aria-label={`Editar ${label}`}
                     onClick={() => onAction({ type: "edit-option", id: option.id })}
-                    className={`${ICON_BUTTON} size-5 text-muted hover:text-ink`}
+                    className={`${ICON_BUTTON} size-11 text-muted hover:text-ink lg:size-5`}
                   >
                     <Pencil size={11} aria-hidden="true" />
                   </button>
@@ -229,7 +230,7 @@ export function OptionGroupCard({ group, meta, editingGroup, editingOptionId, er
                     type="button"
                     aria-label={`Quitar ${label}`}
                     onClick={() => onAction({ type: "remove-option", groupId, id: option.id })}
-                    className={`${ICON_BUTTON} size-5 text-muted hover:text-danger`}
+                    className={`${ICON_BUTTON} size-11 text-muted hover:text-danger lg:size-5`}
                   >
                     <Trash2 size={11} aria-hidden="true" />
                   </button>
@@ -243,7 +244,7 @@ export function OptionGroupCard({ group, meta, editingGroup, editingOptionId, er
       <button
         type="button"
         onClick={() => onAction({ type: "add-option", groupId })}
-        className="flex h-[27px] w-fit shrink-0 items-center gap-[5px] rounded-chip px-1 text-brand hover:bg-brand-wash"
+        className="flex h-11 w-fit shrink-0 items-center gap-[5px] rounded-chip px-2 text-brand hover:bg-brand-wash lg:h-[27px] lg:px-1"
       >
         <Plus size={11} aria-hidden="true" />
         <span className="text-[11px] font-bold whitespace-nowrap">Agregar opción</span>

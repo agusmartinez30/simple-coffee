@@ -90,8 +90,9 @@ export function ProductsScreen() {
   } else {
     const view = getProductsListView(state);
     content = (
-      // The list fills the viewport under the 72px top bar, as in the 1440×900 export.
-      <div className="flex h-[calc(100dvh-72px)] min-h-[700px] flex-col gap-3 px-7 pt-[18px] pb-4">
+      // From `lg` the list fills the viewport under the top bar, as in the 1440×900 export; below
+      // it the page grows with its cards and scrolls.
+      <div className="flex min-h-[calc(100dvh-var(--topbar-h))] flex-col gap-3 px-4 pt-4 pb-6 lg:h-[calc(100dvh-var(--topbar-h))] lg:min-h-[700px] lg:px-7 lg:pt-[18px] lg:pb-4">
         <ProductListHeader onCreate={() => dispatch({ type: "open-new" })} />
         <ProductListMetrics metrics={view.metrics} support={view.metricSupport} />
         <ProductListFilters
