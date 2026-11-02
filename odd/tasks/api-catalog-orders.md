@@ -63,6 +63,7 @@ Out of scope: moments, collections, public/table endpoints, table sessions, bill
   - Follow-ups: read venue timezone once venue exports a service; admin must map cancellation
     reasons (API snake_case vs admin kebab-case).
   - Evidence: prisma validate, typecheck, lint clean; 187 tests passed; build OK; db:deploy applied.
+  - Commit `c3f39d4`. Review: medium; user declined for this candidate.
 
 ## Delivery
 
@@ -76,4 +77,4 @@ which merges into `main` once at the end. Slices: T1 catalog, T2 seed, T3 orders
 
 ## Next step
 
-T1.
+Open slice PRs (catalog → base, seed → catalog, orders → seed) when the user asks; then wire the admin orders board and order creation to the API.
