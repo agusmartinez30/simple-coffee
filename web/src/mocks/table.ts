@@ -1,10 +1,9 @@
 import { describeChoices, getProductById, getUnitPrice } from "./menu";
 import type { Ars, OrderLine, TableInfo, TableOrder } from "./types";
 
+/** The café's static data; the table number comes from the validated QR (`features/table-access`). */
 export const TABLE: TableInfo = {
-  number: "07",
   cafeName: "Café Central",
-  sharedAccount: true,
 };
 
 type LineSeed = {

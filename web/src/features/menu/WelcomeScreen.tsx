@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, Coffee, MapPin } from "lucide-react";
-import { TABLE } from "@/mocks/table";
+import { TableNumberText, ValidTableOnly } from "@/features/table-access";
 
 export const LINE_ART_SRC = encodeURI("/assets/Ilustración · Café Central line art.png");
 
@@ -19,10 +19,15 @@ export function WelcomeScreen() {
             </span>
             <span className="text-[13px] font-bold tracking-[1.6px]">CAFÉ CENTRAL</span>
           </div>
-          <span className="flex h-[34px] items-center gap-1.5 rounded-[17px] px-[11px] outline-1 -outline-offset-[0.5px] outline-white/50 outline-solid">
-            <MapPin size={14} aria-hidden="true" />
-            <span className="text-[11px] font-bold">Mesa {TABLE.number}</span>
-          </span>
+          {/* The table badge appears only once the scanned QR has been validated. */}
+          <ValidTableOnly>
+            <span className="flex h-[34px] items-center gap-1.5 rounded-[17px] px-[11px] outline-1 -outline-offset-[0.5px] outline-white/50 outline-solid">
+              <MapPin size={14} aria-hidden="true" />
+              <span className="text-[11px] font-bold">
+                Mesa <TableNumberText />
+              </span>
+            </span>
+          </ValidTableOnly>
         </header>
 
         <section className="flex flex-col gap-2">
