@@ -38,8 +38,8 @@ mock-era `table-qr`, `venue` and `table-management` features. The API already se
 ## Tasks
 - [x] T1 Data layer: `table-qr-api.ts` (`getTablesConfig`, `regenerateQr`) and `table-qr-mapper.ts`, with tests.
   Route: delegated (2+ non-trivial files). Commit `dd4653c`.
-- [ ] T2 QR rendering: deps, `qr-url.ts`, `qr-matrix.ts`, `QrCode.tsx`, `qr-download.ts`, with tests.
-  Route: delegated.
+- [x] T2 QR rendering: deps, `qr-url.ts`, `qr-matrix.ts`, `QrCode.tsx`, `qr-download.ts`, with tests.
+  Route: delegated. Commit `da6026c`.
 - [ ] T3 Screen: page route, `TableQrScreen`, `use-table-qr.ts`, `TableList`, `QrDetail`, `RegenerateDialog`,
   and a `NAV_ITEMS` entry. Route: delegated.
 - [ ] T4 Printing: `print-card.ts`, `print-selection.ts`, `BulkPrintModal`, and the print sheets, cards and portal.
@@ -67,6 +67,14 @@ mock-era `table-qr`, `venue` and `table-management` features. The API already se
   `TableQr = { id, number, label, spaceId, spaceName, enabled, qr: { token, issuedAt, issuedBy } | null, revoked }`
   (ISO dates kept as strings, `issuedBy` flattened to the staff name). Errors: `invalid` (400 issues), `conflict`
   (409, API code kept as a string), `not-found`, `unauthorized`, `network`, `unknown`.
+- T2 (route: delegated; ~280 authored lines, mostly restored from `2813bbd^`, plus the `admin/package-lock.json`
+  update). RED observed for the restored specs: `qr-url.test.ts` and `qr-matrix.test.ts` failed (modules not found)
+  before the code was restored unchanged. `qr-download.test.ts` is new over restored code (stubbed `document` and
+  `navigator`; no separate RED). Checks: `vitest run src/features/table-qr` 5 files / 23 tests passed; `tsc --noEmit`
+  clean; `eslint` clean. Commit `da6026c`.
+- T2 deviation: the admin is an npm project (`admin/package-lock.json`, no pnpm workspace at the repo root), so the
+  dependencies were added with `npm install` (`qrcode ^1.5.4`, dev `@types/qrcode ^1.5.6`) and the npm lockfile
+  changed; `pnpm --filter admin …` does not apply here.
 
 ## Next step
 T1–T4 by one delegated writer, with one commit per task.
