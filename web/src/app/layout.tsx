@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Caveat, DM_Sans, Inter } from "next/font/google";
 import { CartProvider } from "@/features/cart";
+import { TableAccessProvider } from "@/features/table-access";
 import { TableSessionProvider } from "@/features/table-session";
 import { MobileFrame, SplashScreen } from "@/shared/ui";
 import "./globals.css";
@@ -41,9 +42,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="bg-cream font-sans text-ink">
         <SplashScreen />
         <TableSessionProvider>
-          <CartProvider>
-            <MobileFrame>{children}</MobileFrame>
-          </CartProvider>
+          <TableAccessProvider>
+            <CartProvider>
+              <MobileFrame>{children}</MobileFrame>
+            </CartProvider>
+          </TableAccessProvider>
         </TableSessionProvider>
       </body>
     </html>

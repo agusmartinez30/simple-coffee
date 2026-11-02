@@ -43,8 +43,18 @@ a hardcoded `TABLE = { number: "07" }` (`web/src/mocks/table.ts:4`), so a QR nev
     unexpected 200 body → `network` (keeps the credentials, shows offline). `sameTableCredentials` compares numbers
     by value ("07" = "7"). The reducer drops a stale `resolved` whose credentials are not the ones being checked.
     `formatTableNumber` lives in `table-number.ts`.
-- [ ] T2 `TableAccessProvider`: read URL params, persist and revalidate, clean the URL, reset the session on a table
+- [x] T2 `TableAccessProvider`: read URL params, persist and revalidate, clean the URL, reset the session on a table
   change; `useTableAccess()`. Route: delegated.
+  - Evidence: RED `npx vitest run src/features/table-access/table-access-plan` → "Cannot find module
+    './table-access-plan'"; GREEN `npx vitest run` → 19 files, 140 tests passed; `npx tsc --noEmit` and
+    `npx eslint src/features/table-access src/app` clean. Commit: see Progress.
+  - Decisions: pure `planAccess(urlCreds, storedCreds)` and `planOutcome(check, result)` drive the effects.
+    Valid → save credentials, strip the URL if they came from it, `reset()` only when stored credentials existed and
+    differ (a first scan keeps the session). Rejected → clear storage and strip the URL. Network → keep storage and
+    URL untouched so a reload retries; `retry()` re-runs the last check. The provider reads `window.location` in a
+    mount effect (no `useSearchParams`/Suspense in the layout); `replaceState` keeps `history.state`, path, other
+    params and hash. A run counter drops answers superseded by a newer check or the Strict Mode re-mount.
+    Storage key `cafe-central:table-access:v1`.
 - [ ] T3 UI wiring: welcome badge, explore subtitle, `TableScreen` gate with `TableAccessCard` (09E), `customerName`,
   and the mock cleanup. Route: delegated.
 

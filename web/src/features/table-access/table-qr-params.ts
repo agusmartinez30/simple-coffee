@@ -10,14 +10,20 @@ export type TableCredentials = { number: string; token: string };
 const NUMBER_PATTERN = /^\d{1,6}$/;
 const MAX_TOKEN_LENGTH = 64;
 
+/** Validated credentials from untrusted values (URL or storage), or null when malformed. */
+export function toTableCredentials(number: unknown, token: unknown): TableCredentials | null {
+  if (typeof number !== "string" || typeof token !== "string") return null;
+  const cleanNumber = number.trim();
+  const cleanToken = token.trim();
+  if (!NUMBER_PATTERN.test(cleanNumber)) return null;
+  if (cleanToken.length === 0 || cleanToken.length > MAX_TOKEN_LENGTH) return null;
+  return { number: cleanNumber, token: cleanToken };
+}
+
 /** Reads the table credentials from a `location.search` string, or null when absent or malformed. */
 export function parseTableQrParams(search: string): TableCredentials | null {
   const params = new URLSearchParams(search);
-  const number = params.get(TABLE_PARAM)?.trim() ?? "";
-  const token = params.get(TOKEN_PARAM)?.trim() ?? "";
-  if (!NUMBER_PATTERN.test(number)) return null;
-  if (token.length === 0 || token.length > MAX_TOKEN_LENGTH) return null;
-  return { number, token };
+  return toTableCredentials(params.get(TABLE_PARAM), params.get(TOKEN_PARAM));
 }
 
 /** The search string without the QR parameters (`""` or `"?…"`), keeping every other parameter. */
