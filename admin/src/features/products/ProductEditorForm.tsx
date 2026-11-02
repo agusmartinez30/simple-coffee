@@ -10,8 +10,9 @@ import { AvailabilitySwitch, ProductImage } from "./ProductTags";
 
 type OnAction = (action: EditorAction) => void;
 
+/** 44px tall below `lg` for touch, the export's 36px from it. */
 const INPUT_CLASSES =
-  "h-9 w-full rounded-nav bg-surface px-2.5 text-[12px] text-ink outline-1 -outline-offset-[0.5px] focus:outline-2 focus:-outline-offset-1 focus:outline-brand";
+  "h-11 lg:h-9 w-full rounded-nav bg-surface px-2.5 text-[12px] text-ink outline-1 -outline-offset-[0.5px] focus:outline-2 focus:-outline-offset-1 focus:outline-brand";
 
 type FieldProps = {
   label: string;
@@ -48,19 +49,19 @@ type ImageEditorProps = { image?: string; name: string; error?: string; onAction
 
 /**
  * "Main Image Editor". "Reemplazar" picks a local file and shows it for this session only (no
- * upload); the trash leaves the product without a photo.
+ * upload); the trash leaves the product without a photo. Full width above the fields below `lg`.
  */
 function MainImageEditor({ image, name, error, onAction }: ImageEditorProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const errorId = useId();
   return (
-    <div className="flex w-[218px] shrink-0 flex-col gap-2">
+    <div className="flex w-full flex-col gap-2 lg:w-[218px] lg:shrink-0">
       <ProductImage
         src={image}
         alt={name || "Producto nuevo"}
-        sizes="218px"
+        sizes="(min-width: 1024px) 218px, 100vw"
         iconSize={24}
-        className={clsx("h-[148px] w-full rounded-[10px]", error && "outline-1 -outline-offset-1 outline-danger")}
+        className={clsx("h-[180px] w-full rounded-[10px] lg:h-[148px]", error && "outline-1 -outline-offset-1 outline-danger")}
       />
       <input
         ref={inputRef}
@@ -83,7 +84,7 @@ function MainImageEditor({ image, name, error, onAction }: ImageEditorProps) {
               type="button"
               aria-label="Quitar imagen"
               onClick={() => onAction({ type: "set-image", image: undefined })}
-              className="flex size-7 items-center justify-center rounded-[7px] text-muted hover:bg-cream hover:text-danger"
+              className="flex size-11 items-center justify-center rounded-[7px] text-muted hover:bg-cream hover:text-danger lg:size-7"
             >
               <Trash2 size={12} aria-hidden="true" />
             </button>
@@ -92,7 +93,7 @@ function MainImageEditor({ image, name, error, onAction }: ImageEditorProps) {
             type="button"
             aria-describedby={error ? errorId : undefined}
             onClick={() => inputRef.current?.click()}
-            className="flex h-7 items-center rounded-[7px] px-[9px] text-[11px] font-bold text-brand outline-1 -outline-offset-[0.5px] outline-line hover:bg-brand-wash"
+            className="flex h-11 items-center rounded-[7px] px-3 text-[11px] font-bold text-brand lg:h-7 lg:px-[9px] outline-1 -outline-offset-[0.5px] outline-line hover:bg-brand-wash"
           >
             {image ? "Reemplazar" : "Agregar imagen"}
           </button>
@@ -109,7 +110,10 @@ function MainImageEditor({ image, name, error, onAction }: ImageEditorProps) {
 
 type SectionProps = { draft: ProductDraft; errors: ProductFormErrors; onAction: OnAction };
 
-/** "Información general": image, name, base price, description, category and availability. */
+/**
+ * "Información general": image, name, base price, description, category and availability. Below
+ * `lg` the image stacks over the fields and the price/availability columns narrow to 140px.
+ */
 export function GeneralInformation({ draft, errors, onAction }: SectionProps) {
   return (
     <section aria-labelledby="general-information-title" className="flex w-full shrink-0 flex-col gap-3.5">
@@ -122,7 +126,7 @@ export function GeneralInformation({ draft, errors, onAction }: SectionProps) {
         </div>
         <p className="text-[11px] text-muted">* Campos obligatorios</p>
       </div>
-      <div className="flex w-full items-start gap-4">
+      <div className="flex w-full flex-col gap-4 lg:flex-row lg:items-start">
         <MainImageEditor image={draft.image} name={draft.name} error={errors.image} onAction={onAction} />
         <div className="flex min-w-0 flex-1 flex-col gap-[9px]">
           <div className="flex w-full items-start gap-2.5">
@@ -136,7 +140,7 @@ export function GeneralInformation({ draft, errors, onAction }: SectionProps) {
                 />
               )}
             </Field>
-            <Field label="Precio base *" error={errors.price} className="w-[150px] shrink-0">
+            <Field label="Precio base *" error={errors.price} className="w-[140px] shrink-0 lg:w-[150px]">
               {({ className, ...props }) => (
                 <div
                   className={clsx(
@@ -192,9 +196,9 @@ export function GeneralInformation({ draft, errors, onAction }: SectionProps) {
                 </select>
               )}
             </Field>
-            <div className="flex w-[150px] shrink-0 flex-col gap-[5px]">
+            <div className="flex w-[140px] shrink-0 flex-col gap-[5px] lg:w-[150px]">
               <p className="text-[11px] font-bold whitespace-nowrap text-ink">Disponibilidad</p>
-              <div className="flex h-9 items-center rounded-nav bg-surface px-2.5 outline-1 -outline-offset-[0.5px] outline-line">
+              <div className="flex h-11 lg:h-9 items-center rounded-nav bg-surface px-2.5 outline-1 -outline-offset-[0.5px] outline-line">
                 <AvailabilitySwitch
                   available={draft.available}
                   label="Disponibilidad del producto"
@@ -209,17 +213,20 @@ export function GeneralInformation({ draft, errors, onAction }: SectionProps) {
   );
 }
 
-/** "Consumption Moments Section": canonical moment chips, a check on the selected ones. */
+/**
+ * "Consumption Moments Section": canonical moment chips, a check on the selected ones. Below `lg`
+ * the chips wrap under the title as 44px targets.
+ */
 export function ConsumptionMoments({ moments, onAction }: { moments: readonly ConsumptionMomentId[]; onAction: OnAction }) {
   return (
-    <div role="group" aria-labelledby="moments-title" className="flex w-full shrink-0 items-center justify-between gap-3">
+    <div role="group" aria-labelledby="moments-title" className="flex w-full shrink-0 flex-col items-start gap-3 lg:flex-row lg:items-center lg:justify-between">
       <div className="flex flex-col gap-0.5">
         <h3 id="moments-title" className="text-[13px] font-bold text-ink">
           Momentos de consumo
         </h3>
         <p className="text-[11px] text-muted">Seleccioná dónde se recomienda mostrar el producto</p>
       </div>
-      <div className="flex flex-wrap justify-end gap-1.5">
+      <div className="flex flex-wrap gap-1.5 lg:justify-end">
         {CONSUMPTION_MOMENTS.map((moment) => {
           const selected = moments.includes(moment.id);
           return (
@@ -229,7 +236,7 @@ export function ConsumptionMoments({ moments, onAction }: { moments: readonly Co
               aria-pressed={selected}
               onClick={() => onAction({ type: "toggle-moment", moment: moment.id })}
               className={clsx(
-                "flex h-7 items-center gap-[5px] rounded-[14px] px-2.5 outline-1 -outline-offset-[0.5px]",
+                "flex h-11 items-center gap-[5px] rounded-[22px] px-3 outline-1 lg:h-7 lg:rounded-[14px] lg:px-2.5 -outline-offset-[0.5px]",
                 selected ? "bg-brand text-white outline-brand" : "bg-surface text-muted outline-line hover:bg-cream",
               )}
             >

@@ -35,7 +35,17 @@ shell already collapses to a drawer below `lg`, so the products screens overflow
   - Evidence: tsc, lint OK; 529 tests passed; build OK. No visual/browser check run.
   - Known gaps: no modal in the list needed the full-screen fix; shared `Pagination`/`RowMenu`
     stay 30px (only used at `lg+` here).
-- [ ] T2 — 07B editor and 07C preview on mobile (route: delegated writer; trigger: 2+ non-trivial files)
+  - Commit `54b6f0e`. Review: medium, under budget (260 lines); pending in the slice with T2. Parent spot check: tsc OK.
+- [x] T2 — 07B editor and 07C preview on mobile (route: delegated writer; trigger: 2+ non-trivial files)
+  - Built: below `lg` editor and preview pages scroll (`--topbar-h`, `px-4`), headers stack (20px
+    titles, wrapping breadcrumb with a 44px hit area); the editor is one column (image over fields,
+    wrapping 44px moment chips, 1-col option groups with 44px rows/icons/settings) with a sticky,
+    in-flow save bar (2+1 grid of 44px actions); 07C puts the 370px-capped phone first and the
+    summary under it, full-width "Volver a editar" and version selector. Desktop classes kept under `lg:`.
+  - Evidence: tsc, lint OK; 529 tests passed; build OK. No visual/browser check run.
+  - Known gaps: no modal needed the full-screen fix; the form's `AvailabilitySwitch` (shared
+    `ProductTags`) and the phone mock's chips/stepper keep their small sizes; inputs stay 12px
+    (iOS may zoom on focus).
 
 ## Acceptance criteria
 
@@ -55,4 +65,4 @@ Strategy: `ask-on-risk`. Forecast ~300–450 authored changed lines. Branch `fea
 ## Progress
 
 - T1 done.
-- Next: T2.
+- T2 done. Next: review slice + delivery decision.

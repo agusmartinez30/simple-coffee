@@ -24,7 +24,10 @@ type CustomerProductPreviewProps = {
   preview: PreviewModel;
   available: boolean;
   variant?: CustomerPreviewVariant;
-  /** Box size: 07B gives a 330px column that fills its height, 07C a 370px column. */
+  /**
+   * Box size: from `lg` 07B gives a 330px column that fills its height, 07C a 370px column; below
+   * `lg` both cap at that width and take a fixed height, so the frame fits a 375px screen.
+   */
   className?: string;
 };
 
@@ -171,7 +174,7 @@ export function CustomerProductPreview({ preview, available, variant = "phone", 
             available ? "bg-brand text-white" : "bg-line text-muted",
           )}
         >
-          <span className="text-[12px] font-bold whitespace-nowrap">
+          <span className="truncate px-1 text-[12px] font-bold whitespace-nowrap">
             {available ? getPreviewAddLabel(preview, selection, quantity) : "No disponible"}
           </span>
         </p>

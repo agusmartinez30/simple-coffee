@@ -28,7 +28,7 @@ const VERSION_TONES: Record<PreviewVersion, { dot: string; label: string }> = {
 /** "Preview Version Selector": "Versión publicada" / "Cambios pendientes". */
 function VersionSelector({ view, onSelect }: { view: ProductPreviewView; onSelect: (version: PreviewVersion) => void }) {
   return (
-    <div role="group" aria-label="Versión de la vista previa" className="flex h-9 gap-[3px] rounded-[9px] bg-sand p-[3px]">
+    <div role="group" aria-label="Versión de la vista previa" className="flex h-11 gap-[3px] rounded-[9px] bg-sand p-[3px] lg:h-9">
       {view.versions.map((option) => {
         const selected = option.id === view.version;
         const tone = VERSION_TONES[option.id];
@@ -41,7 +41,7 @@ function VersionSelector({ view, onSelect }: { view: ProductPreviewView; onSelec
             title={option.disabled ? (option.id === "pending" ? "Sin cambios pendientes" : "Producto sin publicar") : undefined}
             onClick={() => onSelect(option.id)}
             className={clsx(
-              "flex h-full items-center gap-[5px] rounded-[7px] px-2.5 disabled:cursor-not-allowed disabled:opacity-45",
+              "flex h-full flex-1 items-center justify-center gap-[5px] rounded-[7px] px-2.5 disabled:cursor-not-allowed disabled:opacity-45 lg:flex-none lg:justify-start",
               selected ? "bg-surface" : "enabled:hover:bg-surface/60",
             )}
           >
@@ -89,13 +89,13 @@ function SummaryGroup({ group }: { group: PreviewSummaryGroup }) {
   );
 }
 
-/** "Administrative Summary": what the admin configured for the version shown. */
+/** "Administrative Summary": what the admin configured for the version shown. Under the phone below `lg`. */
 function AdministrativeSummary({ view }: { view: ProductPreviewView }) {
   const { preview } = view;
   return (
     <section
       aria-label="Resumen administrativo"
-      className="flex h-full w-[520px] shrink-0 flex-col gap-[15px] overflow-y-auto rounded-card bg-surface p-5 outline-1 -outline-offset-[0.5px] outline-line"
+      className="flex w-full min-w-0 flex-col gap-[15px] rounded-card bg-surface p-4 outline-1 -outline-offset-[0.5px] outline-line lg:h-full lg:w-[520px] lg:shrink-0 lg:overflow-y-auto lg:p-5"
     >
       <div className="flex w-full shrink-0 items-center gap-3.5">
         <ProductImage src={preview.image} alt={preview.name} sizes="76px" iconSize={20} className="size-[76px] rounded-[12px]" />
@@ -152,7 +152,8 @@ function AdministrativeSummary({ view }: { view: ProductPreviewView }) {
 /**
  * 07C · Vista previa del producto ("Premium Preview Main"): the administrative summary next to
  * the customer experience, for the saved product ("Versión publicada") or the draft open in the
- * editor ("Cambios pendientes"). Read only: "Volver a editar" returns to the same draft.
+ * editor ("Cambios pendientes"). Read only: "Volver a editar" returns to the same draft. Below
+ * `lg` the page scrolls: header actions full width, the customer screen first, the summary under it.
  */
 export function CustomerPreview({ state, onAction }: CustomerPreviewProps) {
   const [requested, setRequested] = useState<PreviewVersion | null>(null);
@@ -160,20 +161,20 @@ export function CustomerPreview({ state, onAction }: CustomerPreviewProps) {
   if (!view) return null;
 
   return (
-    <div className="flex h-[calc(100dvh-72px)] min-h-[780px] flex-col gap-3 px-7 py-[18px]">
-      <header className="flex h-[68px] w-full shrink-0 items-center justify-between">
-        <div className="flex flex-col gap-[3px]">
+    <div className="flex min-h-[calc(100dvh-var(--topbar-h))] flex-col gap-3 px-4 pt-4 pb-6 lg:h-[calc(100dvh-var(--topbar-h))] lg:min-h-[780px] lg:px-7 lg:py-[18px]">
+      <header className="flex w-full shrink-0 flex-col gap-3 lg:h-[68px] lg:flex-row lg:items-center lg:justify-between lg:gap-0">
+        <div className="flex min-w-0 flex-col gap-[3px]">
           <ProductsBreadcrumb current={view.breadcrumb} onAction={onAction} />
-          <h2 className="text-[25px] font-bold whitespace-nowrap text-ink">Vista previa del producto</h2>
-          <p className="text-[12px] whitespace-nowrap text-muted">
+          <h2 className="text-[20px] font-bold text-ink lg:text-[25px] lg:whitespace-nowrap">Vista previa del producto</h2>
+          <p className="text-[12px] text-muted lg:whitespace-nowrap">
             Revisá la información administrativa y la experiencia del cliente.
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
           <button
             type="button"
             onClick={() => onAction({ type: "close-preview" })}
-            className="flex h-9 items-center gap-1.5 rounded-nav bg-surface px-[11px] text-ink outline-1 -outline-offset-[0.5px] outline-line hover:bg-cream"
+            className="flex h-11 items-center justify-center gap-1.5 rounded-nav lg:h-9 bg-surface px-[11px] text-ink outline-1 -outline-offset-[0.5px] outline-line hover:bg-cream"
           >
             <ArrowLeft size={13} aria-hidden="true" />
             <span className="text-[11px] font-bold whitespace-nowrap">Volver a editar</span>
@@ -181,13 +182,13 @@ export function CustomerPreview({ state, onAction }: CustomerPreviewProps) {
           <VersionSelector view={view} onSelect={setRequested} />
         </div>
       </header>
-      <div className="flex min-h-0 w-full flex-1 items-start gap-3.5">
+      <div className="flex w-full flex-col gap-3.5 lg:min-h-0 lg:flex-1 lg:flex-row lg:items-start">
         <AdministrativeSummary view={view} />
         <section
           aria-labelledby="customer-experience-title"
-          className="flex h-full min-w-0 flex-1 flex-col items-center gap-2.5 rounded-card bg-surface px-[18px] py-3.5 outline-1 -outline-offset-[0.5px] outline-line"
+          className="-order-1 flex w-full min-w-0 flex-col items-center gap-2.5 rounded-card bg-surface px-3 py-3.5 outline-1 -outline-offset-[0.5px] outline-line lg:order-none lg:h-full lg:w-auto lg:flex-1 lg:px-[18px]"
         >
-          <div className="flex w-full items-center justify-between">
+          <div className="flex w-full flex-wrap items-center justify-between gap-2 lg:flex-nowrap lg:gap-0">
             <div className="flex flex-col gap-0.5">
               <h3 id="customer-experience-title" className="text-[14px] font-bold whitespace-nowrap text-ink">
                 Experiencia del cliente
@@ -204,7 +205,7 @@ export function CustomerPreview({ state, onAction }: CustomerPreviewProps) {
             preview={view.preview}
             available={view.available}
             variant="viewport"
-            className="min-h-0 w-[370px] flex-1"
+            className="h-[640px] w-full max-w-[370px] lg:h-auto lg:min-h-0 lg:w-[370px] lg:max-w-none lg:flex-1"
           />
         </section>
       </div>
