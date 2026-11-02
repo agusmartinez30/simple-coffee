@@ -19,7 +19,7 @@ type ProductListFiltersProps = {
 };
 
 const FIELD_CLASSES =
-  "h-10 rounded-nav bg-surface outline-1 -outline-offset-[0.5px] outline-line focus-within:outline-2 focus-within:-outline-offset-1 focus-within:outline-brand";
+  "h-11 rounded-nav bg-surface outline-1 -outline-offset-[0.5px] outline-line focus-within:outline-2 focus-within:-outline-offset-1 focus-within:outline-brand lg:h-10";
 
 type SelectFilterProps<T extends string> = {
   label: string;
@@ -33,7 +33,7 @@ type SelectFilterProps<T extends string> = {
 /** "Filter · …": native select showing the filter name until an option is chosen. */
 function SelectFilter<T extends string>({ label, width, value, options, onChange }: SelectFilterProps<T>) {
   return (
-    <label className={clsx("relative flex shrink-0 items-center", width, FIELD_CLASSES)}>
+    <label className={clsx("relative flex flex-1 items-center lg:flex-none", width, FIELD_CLASSES)}>
       <span className="sr-only">{label}</span>
       <select
         value={value}
@@ -53,13 +53,14 @@ function SelectFilter<T extends string>({ label, width, value, options, onChange
 
 /**
  * "Commerce Filters": search by name or SKU, the "Disponibles" chip (brand-filled while on),
- * the three filter selects and "Limpiar".
+ * the three filter selects and "Limpiar". Below `lg` the search takes the full width and the rest
+ * wraps under it, with the selects growing to fill each line.
  */
 export function ProductListFilters({ filters, canClear, onQueryChange, onFilterChange, onClear }: ProductListFiltersProps) {
   const onlyAvailable = filters.availability === "available";
   return (
-    <div role="search" className="flex h-10 w-full shrink-0 items-center gap-2">
-      <label className={clsx("flex w-[300px] shrink-0 items-center gap-2 px-[11px]", FIELD_CLASSES)}>
+    <div role="search" className="flex w-full shrink-0 flex-wrap items-center gap-2 lg:h-10 lg:flex-nowrap">
+      <label className={clsx("flex w-full shrink-0 items-center gap-2 px-[11px] lg:w-[300px]", FIELD_CLASSES)}>
         <Search size={14} aria-hidden="true" className="shrink-0 text-muted" />
         <span className="sr-only">Buscar producto por nombre o SKU</span>
         <input
@@ -75,7 +76,7 @@ export function ProductListFilters({ filters, canClear, onQueryChange, onFilterC
         aria-pressed={onlyAvailable}
         onClick={() => onFilterChange("availability", onlyAvailable ? "all" : "available")}
         className={clsx(
-          "flex h-10 shrink-0 items-center gap-[7px] rounded-nav px-[11px] text-[12px] font-bold whitespace-nowrap focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
+          "flex h-11 shrink-0 items-center gap-[7px] rounded-nav px-[11px] text-[12px] font-bold whitespace-nowrap focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand lg:h-10",
           onlyAvailable
             ? "bg-brand text-white hover:bg-brand/92"
             : "bg-surface text-ink outline-1 -outline-offset-[0.5px] outline-line hover:bg-cream",
@@ -109,7 +110,7 @@ export function ProductListFilters({ filters, canClear, onQueryChange, onFilterC
         <button
           type="button"
           onClick={onClear}
-          className="flex h-10 shrink-0 items-center rounded-nav px-2 text-[11px] font-bold whitespace-nowrap text-brand hover:underline focus-visible:outline-2 focus-visible:outline-brand"
+          className="flex h-11 shrink-0 items-center rounded-nav px-3 text-[11px] font-bold whitespace-nowrap text-brand hover:underline focus-visible:outline-2 focus-visible:outline-brand lg:h-10 lg:px-2"
         >
           Limpiar
         </button>

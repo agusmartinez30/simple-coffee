@@ -1,7 +1,7 @@
 "use client";
 
 import clsx from "clsx";
-import { Archive, ArchiveRestore, Copy, Pencil, SearchX } from "lucide-react";
+import { Archive, ArchiveRestore, ChevronLeft, ChevronRight, Copy, Pencil, SearchX } from "lucide-react";
 import { useState } from "react";
 import { Pagination, RowMenu, type RowMenuItem } from "@/shared/ui";
 import type { ProductRowView } from "./products-state";
@@ -44,6 +44,20 @@ const PUBLICATION_TONES: Record<ProductRowView["status"], string> = {
   archived: "bg-warning-bg text-warning",
 };
 
+/** Publication chip of a row ("Publicado", "Borrador", "Archivado"). */
+function StatusChip({ row }: { row: ProductRowView }) {
+  return (
+    <span
+      className={clsx(
+        "inline-flex h-[23px] items-center rounded-[12px] px-2 text-[11px] font-bold whitespace-nowrap",
+        PUBLICATION_TONES[row.status],
+      )}
+    >
+      {row.statusLabel}
+    </span>
+  );
+}
+
 /** "Availability": 30×18 switch with its state line and, after a failed save, the inline error. */
 function RowAvailability({ row, onChange }: { row: ProductRowView; onChange: (available: boolean) => void }) {
   const pending = row.availabilityState === "pending";
@@ -60,7 +74,9 @@ function RowAvailability({ row, onChange }: { row: ProductRowView; onChange: (av
           disabled={archived || pending}
           onClick={() => onChange(!row.available)}
           className={clsx(
-            "flex h-[18px] w-[30px] shrink-0 items-center rounded-[9px] p-0.5 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
+            "relative flex h-[18px] w-[30px] shrink-0 items-center rounded-[9px] p-0.5 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
+            // Below `lg` an invisible 44×44 hit area around the track, for touch.
+            "before:absolute before:-inset-x-[7px] before:-inset-y-[13px] lg:before:hidden",
             row.available ? "justify-end bg-brand" : "justify-start bg-[#D3CFC6]",
             archived && "cursor-not-allowed opacity-50",
             pending && "cursor-progress",
@@ -85,6 +101,110 @@ function RowAvailability({ row, onChange }: { row: ProductRowView; onChange: (av
   );
 }
 
+const CARD_ACTION =
+  "flex h-11 items-center justify-center gap-[5px] rounded-nav px-3 text-[11px] font-bold whitespace-nowrap focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand";
+
+const CARD_SECONDARY_ACTION = "text-ink outline-1 -outline-offset-[0.5px] outline-line hover:bg-cream";
+
+type ProductCardProps = {
+  row: ProductRowView;
+  onEdit: () => void;
+  onDuplicate: () => void;
+  onToggleArchive: () => void;
+  onAvailabilityChange: (available: boolean) => void;
+};
+
+/**
+ * Below `lg`, one row as a stacked card: photo, name, meta, moments and price; publication chip
+ * and availability switch; then the row actions as 44px buttons instead of the "More Actions" menu.
+ */
+function ProductCard({ row, onEdit, onDuplicate, onToggleArchive, onAvailabilityChange }: ProductCardProps) {
+  const archived = row.status === "archived";
+  const ArchiveIcon = archived ? ArchiveRestore : Archive;
+  const archiveLabel = archived ? "Restaurar" : "Archivar";
+  return (
+    <li className={clsx("flex flex-col gap-3 border-b border-[#E8E5DF] p-3", archived && "opacity-[0.92]")}>
+      <div className="flex items-start gap-3">
+        <ProductImage src={row.image} alt={row.name} sizes="56px" className="size-14 rounded-[10px]" />
+        <div className="flex min-w-0 flex-1 flex-col gap-1">
+          <h3 className="truncate text-[13px] font-bold text-ink">{row.name}</h3>
+          <p className="truncate text-[11px] text-muted">{row.metaLabel}</p>
+          <p className="truncate text-[12px] font-medium text-muted">{row.momentsLabel}</p>
+        </div>
+        <p className="shrink-0 text-[13px] font-bold whitespace-nowrap text-ink">{row.price}</p>
+      </div>
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+        <StatusChip row={row} />
+        <RowAvailability row={row} onChange={onAvailabilityChange} />
+      </div>
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          aria-label={`Editar ${row.name}`}
+          onClick={onEdit}
+          className={clsx(CARD_ACTION, "flex-1 bg-brand-wash text-brand hover:bg-brand/15")}
+        >
+          <Pencil size={13} aria-hidden="true" className="shrink-0" />
+          Editar
+        </button>
+        <button
+          type="button"
+          aria-label={`Duplicar ${row.name}`}
+          onClick={onDuplicate}
+          className={clsx(CARD_ACTION, CARD_SECONDARY_ACTION)}
+        >
+          <Copy size={13} aria-hidden="true" className="shrink-0" />
+          Duplicar
+        </button>
+        <button
+          type="button"
+          aria-label={`${archiveLabel} ${row.name}`}
+          onClick={onToggleArchive}
+          className={clsx(CARD_ACTION, CARD_SECONDARY_ACTION)}
+        >
+          <ArchiveIcon size={13} aria-hidden="true" className="shrink-0" />
+          {archiveLabel}
+        </button>
+      </div>
+    </li>
+  );
+}
+
+type CompactPaginationProps = Pick<ProductCatalogTableProps, "page" | "pageCount" | "onPageChange">;
+
+const PAGER_ARROW =
+  "flex size-11 shrink-0 items-center justify-center rounded-nav focus-visible:outline-2 focus-visible:outline-brand";
+
+/** Below `lg`, previous/next as 44px buttons around "Página n de m", in place of `Pagination`. */
+function CompactPagination({ page, pageCount, onPageChange }: CompactPaginationProps) {
+  const arrow = (direction: "previous" | "next") => {
+    const target = direction === "previous" ? page - 1 : page + 1;
+    const disabled = target < 1 || target > pageCount;
+    const Icon = direction === "previous" ? ChevronLeft : ChevronRight;
+    return (
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => onPageChange(target)}
+        aria-label={direction === "previous" ? "Página anterior" : "Página siguiente"}
+        className={clsx(PAGER_ARROW, disabled ? "bg-sand text-muted" : clsx("bg-surface", CARD_SECONDARY_ACTION))}
+      >
+        <Icon size={16} aria-hidden="true" />
+      </button>
+    );
+  };
+
+  return (
+    <nav aria-label="Paginación" className="flex items-center justify-between gap-2 lg:hidden">
+      {arrow("previous")}
+      <span className="text-[12px] font-bold text-ink">
+        Página {page} de {Math.max(pageCount, 1)}
+      </span>
+      {arrow("next")}
+    </nav>
+  );
+}
+
 function EmptyRows({ onClearFilters }: { onClearFilters: () => void }) {
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-2 p-6 text-center">
@@ -105,6 +225,8 @@ function EmptyRows({ onClearFilters }: { onClearFilters: () => void }) {
 /**
  * "Products Table · Commerce": sticky header, one 65.5px row per product of the current page,
  * "Editar" plus a "More Actions" menu per row, and the "Commerce Footer" with the pagination.
+ * Below `lg` the table gives way to a list of `ProductCard`s and a compact pager; the hidden
+ * variant is `display: none`, so only one of them is in the accessibility tree.
  */
 export function ProductCatalogTable({
   rows,
@@ -135,7 +257,21 @@ export function ProductCatalogTable({
       aria-label="Productos"
       className="flex min-h-0 w-full flex-1 flex-col overflow-hidden rounded-[10px] bg-surface outline-1 -outline-offset-[0.5px] outline-line"
     >
-      <div className="min-h-0 shrink overflow-y-auto">
+      {!empty && (
+        <ul aria-label="Lista de productos" className="lg:hidden">
+          {rows.map((row) => (
+            <ProductCard
+              key={row.id}
+              row={row}
+              onEdit={() => onEdit(row.id)}
+              onDuplicate={() => onDuplicate(row.id)}
+              onToggleArchive={() => (row.status === "archived" ? onRestore(row.id) : onArchive(row.id))}
+              onAvailabilityChange={(available) => onAvailabilityChange(row.id, available)}
+            />
+          ))}
+        </ul>
+      )}
+      <div className="hidden min-h-0 shrink overflow-y-auto lg:block">
         <table className="w-full table-fixed border-collapse">
           <thead className="sticky top-0 z-[1] bg-[#F6F4EF]">
             <tr className="h-[38px]">
@@ -182,14 +318,7 @@ export function ProductCatalogTable({
                       {row.momentsLabel}
                     </td>
                     <td className={CELL}>
-                      <span
-                        className={clsx(
-                          "inline-flex h-[23px] items-center rounded-[12px] px-2 text-[11px] font-bold whitespace-nowrap",
-                          PUBLICATION_TONES[row.status],
-                        )}
-                      >
-                        {row.statusLabel}
-                      </span>
+                      <StatusChip row={row} />
                     </td>
                     <td className={CELL}>
                       <RowAvailability row={row} onChange={(available) => onAvailabilityChange(row.id, available)} />
@@ -223,15 +352,18 @@ export function ProductCatalogTable({
       {empty && <EmptyRows onClearFilters={onClearFilters} />}
       <footer
         className={clsx(
-          "flex min-h-12 w-full items-center justify-between border-t border-[#E8E5DF] px-3.5",
+          "flex min-h-12 w-full flex-col gap-3 border-t border-[#E8E5DF] px-3.5 py-3 lg:flex-row lg:items-center lg:justify-between lg:gap-0 lg:py-0",
           empty ? "shrink-0" : "flex-1",
         )}
       >
-        <p role="status" className="flex items-center gap-2 whitespace-nowrap">
+        <p role="status" className="flex flex-wrap items-center gap-x-2 lg:flex-nowrap lg:whitespace-nowrap">
           <span className="text-[12px] font-bold text-ink">{countLabel}</span>
           <span className="text-[11px] text-muted">{summaryLabel}</span>
         </p>
-        <Pagination page={page} pageCount={pageCount} onPageChange={onPageChange} />
+        <div className="hidden lg:block">
+          <Pagination page={page} pageCount={pageCount} onPageChange={onPageChange} />
+        </div>
+        <CompactPagination page={page} pageCount={pageCount} onPageChange={onPageChange} />
       </footer>
     </section>
   );
