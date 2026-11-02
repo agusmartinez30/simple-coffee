@@ -8,6 +8,7 @@ describe("NAV_ITEMS", () => {
       "Carta digital",
       "Productos",
       "Categorías y momentos",
+      "QR de mesas",
       "Configuración",
     ]);
   });
@@ -29,6 +30,7 @@ describe("findActiveNavItem", () => {
     expect(findActiveNavItem("/menu/categories")?.id).toBe("categories");
     expect(findActiveNavItem("/menu/products/42")?.id).toBe("products");
     expect(findActiveNavItem("/settings/payments")?.id).toBe("settings");
+    expect(findActiveNavItem("/tables/qr")?.id).toBe("table-qr");
   });
 
   it("ignores trailing slashes and partial segment matches", () => {
@@ -41,6 +43,10 @@ describe("getSectionTitle", () => {
   it("prefixes the active module with the brand name", () => {
     expect(getSectionTitle("/menu")).toBe("Café Central · Carta digital");
     expect(getSectionTitle("/orders")).toBe("Café Central · Pedidos");
+  });
+
+  it("titles the table QR module", () => {
+    expect(getSectionTitle("/tables/qr")).toBe("Café Central · QR de mesas");
   });
 
   it("falls back to the brand name alone", () => {
