@@ -40,8 +40,8 @@ mock-era `table-qr`, `venue` and `table-management` features. The API already se
   Route: delegated (2+ non-trivial files). Commit `dd4653c`.
 - [x] T2 QR rendering: deps, `qr-url.ts`, `qr-matrix.ts`, `QrCode.tsx`, `qr-download.ts`, with tests.
   Route: delegated. Commit `da6026c`.
-- [ ] T3 Screen: page route, `TableQrScreen`, `use-table-qr.ts`, `TableList`, `QrDetail`, `RegenerateDialog`,
-  and a `NAV_ITEMS` entry. Route: delegated.
+- [x] T3 Screen: page route, `TableQrScreen`, `use-table-qr.ts`, `TableList`, `QrDetail`, `RegenerateDialog`,
+  and a `NAV_ITEMS` entry. Route: delegated. Commit `38313db`.
 - [ ] T4 Printing: `print-card.ts`, `print-selection.ts`, `BulkPrintModal`, and the print sheets, cards and portal.
   Route: delegated.
 
@@ -75,6 +75,19 @@ mock-era `table-qr`, `venue` and `table-management` features. The API already se
 - T2 deviation: the admin is an npm project (`admin/package-lock.json`, no pnpm workspace at the repo root), so the
   dependencies were added with `npm install` (`qrcode ^1.5.4`, dev `@types/qrcode ^1.5.6`) and the npm lockfile
   changed; `pnpm --filter admin …` does not apply here.
+- T3 (route: delegated; ~1,040 added lines, ~430 of them tests). Over the 400 heuristic because the page, container,
+  hook, reducer, view logic, error copy, list, detail and dialog ship together as one usable screen. RED observed: the
+  new specs `table-qr-view`, `table-qr-state`, `table-qr-errors` and `qr-file-name` failed (modules not found) and 3
+  `navigation.test.ts` cases failed (no "QR de mesas" entry) before GREEN. Checks: `vitest run` 46 files / 514 tests
+  passed; `tsc --noEmit` clean; `npm run lint` clean. Commit `38313db`.
+- T3 decisions: one page instead of the old list/detail/material views: the list (search + "Espacio" filter) on the left
+  and the selected table's QR panel on the right (stacked below `lg`); the first table is selected on load and the
+  selection survives reloads. Nav entry `table-qr` "QR de mesas" → `/tables/qr` (lucide `QrCode`), placed before
+  "Configuración", default `section` top bar. Credential dates ("hoy", "12 jun") use the venue time zone
+  (`America/Argentina/Buenos_Aires`, as the orders board). A rotation closes the confirmation, shows "Regenerando…" and
+  applies the API's configuration with a success notice; 404 reloads the list; 401 signs out (auth guard → /login).
+  Tables without a credential offer "Generar código QR" (the API's rotation issues the first one). `getQrFileName`
+  moved to `qr-file-name.ts` (the downloads need it before the print card). No `?state=` forced variants.
 
 ## Next step
 T1–T4 by one delegated writer, with one commit per task.
