@@ -1,13 +1,24 @@
 import { getProductById } from "@/mocks/menu";
 import { SEED_ORDERS, buildOrderLine, getTableTotal } from "@/mocks/table";
 import type { Ars, TableOrder } from "@/mocks/types";
+import { isPaymentMethod, type PaymentMethod } from "./payment-method";
+
+export type BillRequest = {
+  method: PaymentMethod;
+  /** Local time the bill was requested, e.g. "13:10". */
+  time: string;
+};
 
 export type TableSessionState = {
   orders: TableOrder[];
+  /** Null until the guest asks for the bill; new orders keep it. */
+  billRequest: BillRequest | null;
 };
 
 export type TableSessionAction =
   | { type: "addOrder"; order: TableOrder }
+  /** Requests the bill, or changes the method of an existing request. */
+  | { type: "requestBill"; method: PaymentMethod; time: string }
   | { type: "reset" }
   | { type: "hydrate"; state: TableSessionState };
 
@@ -35,6 +46,7 @@ const FIRST_ORDER_NUMBER = 1001;
 
 export const initialSession: TableSessionState = {
   orders: SEED_ORDERS,
+  billRequest: null,
 };
 
 function trimmed(value: string | undefined): string | undefined {
@@ -86,6 +98,8 @@ export function tableSessionReducer(
     case "addOrder":
       if (state.orders.some((order) => order.id === action.order.id)) return state;
       return { ...state, orders: [...state.orders, action.order] };
+    case "requestBill":
+      return { ...state, billRequest: { method: action.method, time: action.time } };
     case "reset":
       return initialSession;
     case "hydrate":
@@ -126,6 +140,13 @@ function isOrder(value: unknown): value is TableOrder {
   );
 }
 
+function parseBillRequest(value: unknown): BillRequest | null {
+  if (typeof value !== "object" || value === null) return null;
+  const request = value as Record<string, unknown>;
+  if (!isPaymentMethod(request.method) || typeof request.time !== "string") return null;
+  return { method: request.method, time: request.time };
+}
+
 /** Parses the persisted session, falling back to the initial session on any malformed data. */
 export function parseStoredSession(raw: string | null): TableSessionState {
   if (!raw) return initialSession;
@@ -133,7 +154,8 @@ export function parseStoredSession(raw: string | null): TableSessionState {
     const parsed = JSON.parse(raw) as Partial<Record<keyof TableSessionState, unknown>>;
     const orders = parsed?.orders;
     if (!Array.isArray(orders) || !orders.every(isOrder)) return initialSession;
-    return { orders };
+    // A malformed bill request is dropped on its own; the orders are still valid.
+    return { orders, billRequest: parseBillRequest(parsed.billRequest) };
   } catch {
     return initialSession;
   }

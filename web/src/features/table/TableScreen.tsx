@@ -2,10 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Coffee, RefreshCw, Send } from "lucide-react";
+import { ArrowRight, Coffee, ReceiptText, RefreshCw, Send } from "lucide-react";
 import { TABLE } from "@/mocks/table";
 import { useCart } from "@/features/cart";
-import { getTableSummary, useTableSession } from "@/features/table-session";
+import { getTableSummary, useTableSession, type PaymentMethod } from "@/features/table-session";
 import { delay, formatClockTime } from "@/shared/lib/delay";
 import { formatPrice } from "@/shared/lib/format-price";
 import { useScreenState } from "@/shared/lib/use-screen-state";
@@ -14,12 +14,15 @@ import {
   formatItemCount,
   PrimaryButton,
   ScreenHeader,
+  SecondaryButton,
   StateCard,
   StatusPill,
   StickyFooter,
 } from "@/shared/ui";
 import { AccountSummaryCard } from "./AccountSummaryCard";
+import { BillRequestNotice } from "./BillRequestNotice";
 import { OrderCard } from "./OrderCard";
+import { PaymentMethodSheet } from "./PaymentMethodSheet";
 import { PendingOrder } from "./PendingOrder";
 import { TableHeading } from "./TableHeading";
 import { TABLE_VIEW_COPY } from "./table-copy";
@@ -27,20 +30,24 @@ import { TABLE_FORCED_STATES, getTableView } from "./table-view";
 
 const RETRY_DELAY_MS = 900;
 const SEND_DELAY_MS = 900;
+const BILL_DELAY_MS = 900;
 
 /**
- * Screen 07 · Mi mesa: the guest's pending order (sent from here) above the table orders. The variant follows the table
+ * Screen 07 · Mi mesa: the guest's pending order (sent from here) above the table orders, and the bill
+ * request with its payment method. The variant follows the table
  * session; `?state=empty|error` forces it. It reads search params, so it must render inside
  * `<Suspense>`.
  */
 export function TableScreen() {
   const router = useRouter();
   const forced = useScreenState(TABLE_FORCED_STATES);
-  const { orders, hydrated, placeOrder } = useTableSession();
+  const { orders, hydrated, placeOrder, billRequest, requestBill } = useTableSession();
   const cart = useCart();
   const [toggled, setToggled] = useState<ReadonlySet<string>>(new Set());
   const [retrying, setRetrying] = useState(false);
   const [sending, setSending] = useState(false);
+  const [billSheetOpen, setBillSheetOpen] = useState(false);
+  const [requestingBill, setRequestingBill] = useState(false);
 
   const header = <ScreenHeader title="Mi mesa" backHref="/explore" table={TABLE.number} className="mt-2" />;
 
@@ -91,7 +98,19 @@ export function TableScreen() {
     setSending(false);
   }
 
+  async function handleRequestBill(method: PaymentMethod) {
+    if (requestingBill) return;
+    setRequestingBill(true);
+    await delay(BILL_DELAY_MS);
+    requestBill(method, formatClockTime(new Date()));
+    setRequestingBill(false);
+    setBillSheetOpen(false);
+  }
+
   const canSend = view !== "error" && cart.hydrated && cart.itemCount > 0;
+  // The bill can be asked for once the table has orders; afterwards the notice offers to change the method.
+  const canRequestBill = view !== "error" && visibleOrders.length > 0 && !billRequest;
+  const BillButton = canSend ? SecondaryButton : PrimaryButton;
 
   const notice = copy.notice ? (
     <div className="flex min-h-[58px] w-full items-center gap-2.5 rounded-[13px] bg-brand-tint px-[13px] py-3 text-brand">
@@ -135,6 +154,12 @@ export function TableScreen() {
           <span className="text-[9.5px] text-muted">{statusMeta}</span>
         </div>
         <AccountSummaryCard total={summary.total} orderCount={summary.orderCount} table={TABLE.number} />
+        {billRequest && visibleOrders.length > 0 ? (
+          <BillRequestNotice
+            request={billRequest}
+            onChange={view === "error" ? undefined : () => setBillSheetOpen(true)}
+          />
+        ) : null}
 
         {view === "error" ? null : <PendingOrder />}
 
@@ -158,6 +183,11 @@ export function TableScreen() {
             Enviar pedido · {formatItemCount(cart.itemCount)} · {formatPrice(cart.subtotal)}
           </PrimaryButton>
         ) : null}
+        {canRequestBill ? (
+          <BillButton size="md" icon={ReceiptText} onClick={() => setBillSheetOpen(true)}>
+            Pedir la cuenta
+          </BillButton>
+        ) : null}
         {view === "empty" && copy.footer ? (
           <PrimaryButton href="/explore" icon={ArrowRight} iconPosition="end" className="h-[52px]! rounded-[26px]! text-[14px]!">
             {copy.footer.primaryLabel}
@@ -171,6 +201,15 @@ export function TableScreen() {
         {copy.footer?.hint ? <p className="text-center text-[9px] text-muted">{copy.footer.hint}</p> : null}
         {view === "error" ? null : <BottomNav active="mesa" />}
       </StickyFooter>
+
+      {billSheetOpen ? (
+        <PaymentMethodSheet
+          initialMethod={billRequest?.method}
+          confirming={requestingBill}
+          onConfirm={handleRequestBill}
+          onClose={() => setBillSheetOpen(false)}
+        />
+      ) : null}
     </>
   );
 }

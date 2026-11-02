@@ -10,6 +10,7 @@ export {
   selectOrderById,
   selectTableTotal,
   tableSessionReducer,
+  type BillRequest,
   type BuildOrderResult,
   type OrderInputLine,
   type PlaceOrderInput,
@@ -21,3 +22,9 @@ export {
   getTableSummary,
   type TableSummary,
 } from "./table-summary";
+export {
+  PAYMENT_METHODS,
+  PAYMENT_METHOD_LABELS,
+  isPaymentMethod,
+  type PaymentMethod,
+} from "./payment-method";

@@ -10,18 +10,20 @@ import {
   type ReactNode,
 } from "react";
 import type { Ars, TableOrder } from "@/mocks/types";
+import type { PaymentMethod } from "./payment-method";
 import {
   buildOrder,
   initialSession,
   parseStoredSession,
   selectTableTotal,
   tableSessionReducer,
+  type BillRequest,
   type BuildOrderResult,
   type PlaceOrderInput,
 } from "./table-session-reducer";
 
-// Bump the version when the seed data changes, so stale sessions saved in browsers are dropped.
-const STORAGE_KEY = "cafe-central:table-session:v5";
+// Bump the version when the seed data or the session shape changes, so stale sessions saved in browsers are dropped.
+const STORAGE_KEY = "cafe-central:table-session:v6";
 
 export type TableSessionContextValue = {
   orders: TableOrder[];
@@ -31,6 +33,9 @@ export type TableSessionContextValue = {
   getOrder: (orderId: string) => TableOrder | undefined;
   /** Validates and adds the order; the result carries the created order or the reason. */
   placeOrder: (input: PlaceOrderInput) => BuildOrderResult;
+  billRequest: BillRequest | null;
+  /** Requests the bill with the method, or changes the method of the current request. */
+  requestBill: (method: PaymentMethod, time: string) => void;
   reset: () => void;
 };
 
@@ -54,7 +59,7 @@ function writeStoredSession(value: string) {
 }
 
 /**
- * Orders shared by the order and table screens. It starts from the
+ * Orders and the bill request shared by the order and table screens. It starts from the
  * seed on the server and the first client render (hydration-safe), then restores the
  * persisted session after mount.
  */
@@ -102,6 +107,8 @@ export function TableSessionProvider({ children }: { children: ReactNode }) {
         }
         return result;
       },
+      billRequest: state.billRequest,
+      requestBill: (method, time) => dispatch({ type: "requestBill", method, time }),
       reset: () => dispatch({ type: "reset" }),
     }),
     [state, hydrated],
