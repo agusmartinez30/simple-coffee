@@ -40,6 +40,7 @@ never sees orders created elsewhere. The API now exposes orders (feature `api-ca
     wins. Errors in `Notice`; 401 signs out. Real clock in the service time zone. Delivered orders
     leave the board 30 min after delivery. `?state=detail|cancel` removed.
   - Evidence: tsc, lint OK; 809 tests passed; build OK. Not yet exercised against a live API.
+  - Commit `22fa936`. Review: medium; user declined for this candidate.
 - [ ] T2 — Create order from the panel (route: TBD after design decision)
 
 ## Delivery
