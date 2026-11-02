@@ -39,6 +39,8 @@ model StaffUser {
   sessions            Session[]
   passwordResetTokens PasswordResetToken[]
   issuedQrCredentials TableQrCredential[]
+  createdOrders       Order[]              @relation("OrderCreatedBy")
+  orderEvents         OrderEvent[]
 
   @@map("staff_users")
 }
@@ -250,4 +252,189 @@ model TableQrCredential {
 
   @@index([tableId])
   @@map("table_qr_credentials")
+}
+
+// ── catalog (src/modules/catalog) ────────────────────────────────────────
+// Categories in display order and their products with option groups. Products are never
+// deleted (archived instead), so a category with products cannot be deleted. Option groups and
+// options are replaced as a whole when a product is saved. Money is integer ARS pesos.
+
+enum CatalogPublication {
+  PUBLISHED
+  DRAFT
+}
+
+enum CatalogOptionSelection {
+  SINGLE
+  MULTIPLE
+}
+
+model CatalogCategory {
+  /// Slug of the first name, e.g. "cafes".
+  id          String           @id
+  name        String
+  description String           @default("")
+  visible     Boolean          @default(true)
+  /// Display order, from 0.
+  position    Int
+  products    CatalogProduct[]
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@map("catalog_categories")
+}
+
+model CatalogProduct {
+  id                 String               @id @default(cuid())
+  /// "CAF-014": category prefix and sequence unless given.
+  sku                String               @unique
+  name               String
+  description        String               @default("")
+  /// Integer ARS pesos, greater than 0.
+  price              Int
+  categoryId         String
+  category           CatalogCategory      @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  publication        CatalogPublication   @default(DRAFT)
+  available          Boolean              @default(true)
+  archived           Boolean              @default(false)
+  allowCustomerNotes Boolean              @default(false)
+  /// Commercial rank within the category, from 1.
+  position           Int
+  /// Bumped by every change (display and audit only).
+  version            Int                  @default(1)
+  optionGroups       CatalogOptionGroup[]
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+
+  @@index([categoryId])
+  @@map("catalog_products")
+}
+
+model CatalogOptionGroup {
+  id              String                 @id @default(cuid())
+  productId       String
+  product         CatalogProduct         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  title           String
+  selection       CatalogOptionSelection
+  required        Boolean                @default(false)
+  /// Always 1 for single groups; null when a multiple group has no limit.
+  max             Int?
+  /// One of the group's options; null when none is preselected.
+  defaultOptionId String?
+  position        Int
+  options         CatalogOption[]
+
+  @@index([productId])
+  @@map("catalog_option_groups")
+}
+
+model CatalogOption {
+  id         String             @id @default(cuid())
+  groupId    String
+  group      CatalogOptionGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  name       String
+  /// Integer ARS pesos added to the product price, 0 or more.
+  priceDelta Int                @default(0)
+  position   Int
+
+  @@index([groupId])
+  @@map("catalog_options")
+}
+
+// ── orders (src/modules/orders) ──────────────────────────────────────────
+// Orders are priced from the catalog when created and keep a snapshot of the table, products,
+// options and prices, so catalog or table changes never alter history. `productId` and
+// `tableNumber` are therefore plain values, not foreign keys. Money is integer ARS pesos.
+
+enum OrderStatus {
+  RECEIVED
+  PREPARING
+  DELIVERED
+  CANCELLED
+}
+
+enum OrderCancellationReason {
+  PRODUCT_UNAVAILABLE
+  CUSTOMER_REQUEST
+  ORDER_ERROR
+}
+
+enum OrderSource {
+  STAFF
+  TABLE
+}
+
+model Order {
+  id                 String                   @id @default(cuid())
+  /// Visible number ("Pedido #1051"); the migration starts the sequence at 1001.
+  number             Int                      @unique @default(autoincrement())
+  tableNumber        Int
+  tableLabel         String
+  spaceName          String
+  customerName       String
+  note               String?
+  status             OrderStatus              @default(RECEIVED)
+  /// Set only when cancelled.
+  cancellationReason OrderCancellationReason?
+  source             OrderSource
+  /// Staff member who loaded the order; null for table orders.
+  createdById        String?
+  createdBy          StaffUser?               @relation("OrderCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  /// Sum of unit price × quantity of the items.
+  total              Int
+  items              OrderItem[]
+  events             OrderEvent[]
+  createdAt          DateTime                 @default(now())
+  updatedAt          DateTime                 @updatedAt
+
+  @@index([createdAt])
+  @@map("orders")
+}
+
+model OrderItem {
+  id          String            @id @default(cuid())
+  orderId     String
+  order       Order             @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  /// Catalog product id (no foreign key: the snapshot outlives catalog changes).
+  productId   String
+  productName String
+  sku         String
+  /// 1 to 99.
+  quantity    Int
+  /// Product price plus the chosen option deltas.
+  unitPrice   Int
+  note        String?
+  position    Int
+  options     OrderItemOption[]
+
+  @@index([orderId])
+  @@map("order_items")
+}
+
+model OrderItemOption {
+  id         String    @id @default(cuid())
+  itemId     String
+  item       OrderItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  groupTitle String
+  optionName String
+  priceDelta Int
+  position   Int
+
+  @@index([itemId])
+  @@map("order_item_options")
+}
+
+/// Status history, one row per transition.
+model OrderEvent {
+  id      String      @id @default(cuid())
+  orderId String
+  order   Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  kind    OrderStatus
+  at      DateTime
+  /// Staff member who moved the order; null for customer actions.
+  actorId String?
+  actor   StaffUser?  @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([orderId])
+  @@map("order_events")
 }

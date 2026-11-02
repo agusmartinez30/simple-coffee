@@ -30,7 +30,7 @@ The app validates its environment at boot (`src/shared/config/env.ts`) and exits
 | `test`                       | Vitest: unit specs in `src/`, e2e specs in `test/`  |
 | `db:generate`                | Generate the Prisma client into `src/generated/`    |
 | `db:migrate` / `db:deploy`   | Create/apply migrations (dev) or apply them (prod)  |
-| `db:seed`                    | Create the venue if missing; upsert the owner from `SEED_OWNER_*` env |
+| `db:seed`                    | Create the venue, tables and menu if missing; upsert the owner from `SEED_OWNER_*` env |
 | `db:studio`                  | Prisma Studio                                       |
 
 ## Architecture rules
@@ -110,6 +110,26 @@ Own session auth, no JWT. `src/modules/auth` stores sessions in PostgreSQL and h
 - QR tokens are 10 random alphanumeric characters (`node:crypto`), unique across every credential ever issued. Regenerating revokes the active credential with the next audit number (`QR-119` after `QR-118`); disabling keeps the credential (paused); deleting the table revokes it and keeps the row, so its token and number never come back. `issuedBy` is the signed-in staff member.
 - `version` is display and audit only (no optimistic concurrency): editing the form always bumps it; enable/disable, layout and regenerate bump it when something changes.
 - The seed creates the admin mock configuration (3 spaces, 12 tables with their fixed QR tokens, Mesa 07's audited rotation) only when there is no table configuration yet; its credentials are issued by the seeded owner.
+- The seed also creates the admin mock menu (9 categories, 13 products, the coffees' "Tamaño" and "Extras" option groups) only when the catalog has no categories or products, so it never overwrites admin edits; ids are deterministic (`prd_cappuccino`, `opg_cappuccino_tamano`, `opt_cappuccino_tamano_mediano`).
+
+## Orders (staff orders board)
+
+`src/modules/orders` holds orders and their lifecycle for the admin orders board and "Cargar pedido". Every route uses `SessionGuard` (any staff role) and answers `Order` (or a list of them). Lines are priced through the catalog's exported `ResolveOrderableProducts`; tables are checked through the tables module's exported `FindTableByNumber`.
+
+| Endpoint                         | Auth  | Body → response |
+| -------------------------------- | ----- | --------------- |
+| `POST /orders`                   | staff | `{ tableNumber, customerName?, note?, lines: [{ productId, quantity, optionIds?, note? }] }` → `201 Order`; `400 invalid_order`, `409 table_disabled \| product_not_orderable` |
+| `GET /orders?date=YYYY-MM-DD&status=` | staff | `200 Order[]` of the service day (today by default), oldest first |
+| `GET /orders/:orderId`           | staff | `200 Order`; `404 order_not_found` |
+| `POST /orders/:orderId/advance`  | staff | `200 Order` one step forward; `409 invalid_transition` |
+| `POST /orders/:orderId/cancel`   | staff | `{ reason: "product_unavailable" \| "customer_request" \| "order_error" }` → `200 Order`; `409 invalid_transition` |
+
+- `Order` is `{ id, number, tableNumber, tableLabel, spaceName, customerName, note, status, cancellationReason, source, createdBy, total, items, events, createdAt, updatedAt }`; `status` is `received`, `preparing`, `delivered` or `cancelled`, `source` is `staff` or `table`; items are `{ id, productId, productName, sku, quantity, unitPrice, subtotal, note, options: [{ groupTitle, optionName, priceDelta }] }` and events `{ kind, at, actor: { id, name } | null }`, oldest first.
+- Pricing: only published, available, non-archived products (`409 product_not_orderable` with `productId` and `reason: archived | draft | unavailable`). Chosen options must belong to the product; a required group without a choice takes its default option, or fails; single groups take one option, multiple groups up to their `max`. `unitPrice` = price + option deltas; `total` = Σ unitPrice × quantity.
+- Limits: 1 to 50 lines, integer quantities 1 to 99, customer name up to 40 characters (`Mesa 07` when blank), order and item notes up to 140; item notes only for products with `allowCustomerNotes`. `400` issues are `{ path, code, groupId? }` (`unknown_table`, `unknown_product`, `unknown_option`, `duplicate_option`, `missing_required_group`, `too_many_options`, `not_allowed`, `too_long`, `out_of_range`, `required`, `too_many`). An unknown table is a `400` issue; a disabled one is `409 table_disabled`.
+- Lifecycle: `received → preparing → delivered`, one step at a time; cancel only from `received` or `preparing`. Each transition appends an event with the staff member and time; transitions are conditional on the stored status, so concurrent clicks cannot both win.
+- Orders keep a snapshot of the table, products, options and prices: `productId` is not a foreign key, so catalog changes never alter history. Visible numbers start at 1001 (the migration restarts the sequence).
+- The service day runs from local midnight to midnight in `America/Argentina/Buenos_Aires` (`SERVICE_TIME_ZONE` in `orders/domain/service-day.ts`). The venue profile has a `timezone`, but the venue module exports no service yet; switch to it once it does.
 
 ## Notes
 

@@ -2,6 +2,8 @@ import { Module } from '@nestjs/common';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { HealthController } from './health/health.controller.js';
 import { AuthModule } from './modules/auth/auth.module.js';
+import { CatalogModule } from './modules/catalog/catalog.module.js';
+import { OrdersModule } from './modules/orders/orders.module.js';
 import { TablesModule } from './modules/tables/tables.module.js';
 import { VenueModule } from './modules/venue/venue.module.js';
 import { PrismaModule } from './shared/prisma/prisma.module.js';
@@ -14,6 +16,8 @@ import { PrismaModule } from './shared/prisma/prisma.module.js';
     AuthModule,
     VenueModule,
     TablesModule,
+    CatalogModule,
+    OrdersModule,
   ],
   controllers: [HealthController],
 })

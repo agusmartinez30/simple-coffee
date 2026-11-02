@@ -3,28 +3,31 @@
 import { useEffect, useRef, useState, type RefObject } from "react";
 import clsx from "clsx";
 import { CornerDownRight, PanelRightOpen, SearchX, type LucideIcon } from "lucide-react";
-import type { ManagedOrder } from "@/mocks/types";
+import { getColumnTabs, type ColumnTab } from "./board-tabs";
 import { formatOrderLocation, getElapsedBadge, getItemNote, isNewOrder } from "./order-alerts";
 import { getPrimaryAction, type OrderColumn, type OrderColumnId } from "./orders-view";
 import { Badge, ORDER_TONE_CLASSES } from "./OrderTags";
+import type { Order } from "./order-types";
 
 type OrderCardProps = {
-  order: ManagedOrder;
+  order: Order;
   now: string;
   selected: boolean;
-  onSelect: (id: number) => void;
-  onAdvance: (id: number) => void;
+  /** An advance or cancel of this order is in flight. */
+  pending: boolean;
+  onSelect: (id: string) => void;
+  onAdvance: (id: string) => void;
 };
 
 /** "Pedido #NNNN": kitchen card. The whole card selects the order for the detail panel. */
-function OrderCard({ order, now, selected, onSelect, onAdvance }: OrderCardProps) {
+function OrderCard({ order, now, selected, pending, onSelect, onAdvance }: OrderCardProps) {
   const action = getPrimaryAction(order);
   const elapsed = getElapsedBadge(order, now);
   const fresh = isNewOrder(order, now);
 
   return (
     <article
-      aria-label={`Pedido #${order.id}`}
+      aria-label={`Pedido #${order.number}`}
       className={clsx(
         "relative flex w-full shrink-0 flex-col gap-2.5 rounded-[10px] bg-surface p-3",
         selected
@@ -43,7 +46,7 @@ function OrderCard({ order, now, selected, onSelect, onAdvance }: OrderCardProps
               onClick={() => onSelect(order.id)}
               className="text-left after:absolute after:inset-0 after:rounded-[10px] focus-visible:outline-none focus-visible:after:outline-2 focus-visible:after:outline-brand"
             >
-              Pedido #{order.id}
+              Pedido #{order.number}
             </button>
           </h3>
           <p className="text-[12px] font-bold text-brand">{formatOrderLocation(order)}</p>
@@ -74,24 +77,26 @@ function OrderCard({ order, now, selected, onSelect, onAdvance }: OrderCardProps
         {action ? (
           <button
             type="button"
+            disabled={pending}
+            aria-busy={pending}
             onClick={() => onAdvance(order.id)}
             className={clsx(
-              "relative z-[1] flex h-[34px] flex-1 items-center justify-center rounded-[7px] text-[11px] font-extrabold whitespace-nowrap text-white",
+              "relative z-[1] flex h-11 flex-1 items-center justify-center rounded-[7px] text-[11px] font-extrabold whitespace-nowrap text-white disabled:cursor-wait disabled:opacity-60 lg:h-[34px]",
               ORDER_TONE_CLASSES[action.tone].solid,
             )}
           >
             {action.label}
           </button>
         ) : (
-          <span className="flex h-[34px] flex-1 items-center justify-center rounded-[7px] bg-success-bg text-[11px] font-extrabold text-success">
+          <span className="flex h-11 flex-1 items-center justify-center rounded-[7px] bg-success-bg lg:h-[34px] text-[11px] font-extrabold text-success">
             Entregado
           </span>
         )}
         <button
           type="button"
-          aria-label={`Ver detalle del pedido #${order.id}`}
+          aria-label={`Ver detalle del pedido #${order.number}`}
           onClick={() => onSelect(order.id)}
-          className="relative z-[1] flex size-[34px] shrink-0 items-center justify-center rounded-[7px] text-muted outline-1 -outline-offset-[0.5px] outline-line hover:bg-cream"
+          className="relative z-[1] flex size-11 shrink-0 items-center justify-center rounded-[7px] text-muted outline-1 -outline-offset-[0.5px] outline-line hover:bg-cream lg:size-[34px]"
         >
           <PanelRightOpen size={15} aria-hidden="true" />
         </button>
@@ -126,22 +131,28 @@ function useMoreBelow(ref: RefObject<HTMLElement | null>): boolean {
   return moreBelow;
 }
 
-type KanbanColumnProps = Omit<OrderCardProps, "order" | "selected"> & {
+type KanbanColumnProps = Omit<OrderCardProps, "order" | "selected" | "pending"> & {
   column: OrderColumn;
-  selectedId: number | null;
+  selectedId: string | null;
+  pendingIds: readonly string[];
 };
 
-/** "Columna · …": tinted column with its dot, title, count and scrolling cards. */
-function KanbanColumn({ column, selectedId, ...cardProps }: KanbanColumnProps) {
+/**
+ * "Columna · …": tinted column with its dot, title, count and scrolling cards. Below `lg` only the
+ * `shown` column renders (the one of the selected tab); from `lg` every column does.
+ */
+function KanbanColumn({ column, selectedId, pendingIds, shown, ...cardProps }: KanbanColumnProps & { shown: boolean }) {
   const listRef = useRef<HTMLDivElement>(null);
   const moreBelow = useMoreBelow(listRef);
   const tone = ORDER_TONE_CLASSES[column.tone];
 
   return (
     <section
+      id={`orders-panel-${column.id}`}
       aria-labelledby={`orders-column-${column.id}`}
       className={clsx(
-        "flex h-full min-h-0 min-w-0 flex-1 flex-col gap-2.5 overflow-hidden rounded-card p-2.5",
+        "h-full min-h-0 min-w-0 flex-1 flex-col gap-2.5 overflow-hidden rounded-card p-2.5",
+        shown ? "flex" : "hidden lg:flex",
         COLUMN_BACKGROUNDS[column.id],
       )}
     >
@@ -159,7 +170,13 @@ function KanbanColumn({ column, selectedId, ...cardProps }: KanbanColumnProps) {
       </div>
       <div ref={listRef} className="-m-1 flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto p-1">
         {column.orders.map((order) => (
-          <OrderCard key={order.id} order={order} selected={order.id === selectedId} {...cardProps} />
+          <OrderCard
+            key={order.id}
+            order={order}
+            selected={order.id === selectedId}
+            pending={pendingIds.includes(order.id)}
+            {...cardProps}
+          />
         ))}
       </div>
       {moreBelow && (
@@ -182,13 +199,59 @@ export type BoardEmptyState = {
   action?: { label: string; onClick: () => void };
 };
 
+type ColumnTabsProps = {
+  tabs: readonly ColumnTab[];
+  activeId: OrderColumnId | null;
+  onChange: (id: OrderColumnId) => void;
+};
+
+/** Status tabs of the mobile board ("Recibidos 3"); hidden from `lg`, where every column shows. */
+function ColumnTabs({ tabs, activeId, onChange }: ColumnTabsProps) {
+  return (
+    <div role="group" aria-label="Estado de los pedidos" className="flex w-full shrink-0 gap-1.5 overflow-x-auto lg:hidden">
+      {tabs.map((tab) => {
+        const active = tab.id === activeId;
+        return (
+          <button
+            key={tab.id}
+            type="button"
+            aria-pressed={active}
+            aria-controls={`orders-panel-${tab.id}`}
+            onClick={() => onChange(tab.id)}
+            className={clsx(
+              "flex h-11 shrink-0 items-center gap-2 rounded-nav px-3 text-[12px] font-bold whitespace-nowrap outline-1 -outline-offset-[0.5px]",
+              active ? "bg-ink text-white outline-ink" : "bg-surface text-muted outline-line hover:bg-cream",
+            )}
+          >
+            <span aria-hidden="true" className={clsx("size-2 rounded-full", ORDER_TONE_CLASSES[tab.tone].dot)} />
+            {tab.label}
+            <span className={clsx("text-[11px]", active ? "text-white/72" : "text-ink")}>{tab.count}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 type KanbanBoardProps = Omit<KanbanColumnProps, "column"> & {
   columns: OrderColumn[];
   emptyState: BoardEmptyState | null;
+  /** Column shown below `lg`, picked by the container (see `pickActiveTab`). */
+  activeColumnId: OrderColumnId | null;
+  onActiveColumnChange: (id: OrderColumnId) => void;
 };
 
-/** "Tablero de estados": one column per kitchen stage, or an empty state when nothing matches. */
-export function KanbanBoard({ columns, emptyState, ...columnProps }: KanbanBoardProps) {
+/**
+ * "Tablero de estados": one column per kitchen stage, or an empty state when nothing matches.
+ * Below `lg` status tabs pick the single column on screen.
+ */
+export function KanbanBoard({
+  columns,
+  emptyState,
+  activeColumnId,
+  onActiveColumnChange,
+  ...columnProps
+}: KanbanBoardProps) {
   if (emptyState) {
     const EmptyIcon = emptyState.icon ?? SearchX;
     return (
@@ -210,9 +273,10 @@ export function KanbanBoard({ columns, emptyState, ...columnProps }: KanbanBoard
   }
 
   return (
-    <div className="flex h-full min-h-0 min-w-0 flex-1 gap-2.5">
+    <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col gap-2.5 lg:flex-row">
+      <ColumnTabs tabs={getColumnTabs(columns)} activeId={activeColumnId} onChange={onActiveColumnChange} />
       {columns.map((column) => (
-        <KanbanColumn key={column.id} column={column} {...columnProps} />
+        <KanbanColumn key={column.id} column={column} shown={column.id === activeColumnId} {...columnProps} />
       ))}
     </div>
   );

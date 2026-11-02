@@ -2,21 +2,23 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import { ChevronDown, ShieldCheck, TriangleAlert } from "lucide-react";
-import type { CancellationReason, ManagedOrder } from "@/mocks/types";
 import { formatOrderLocation } from "./order-alerts";
+import type { CancellationReason, Order } from "./order-types";
 import { CANCELLATION_REASONS } from "./orders-view";
 
 type CancelOrderDialogProps = {
-  order: ManagedOrder;
+  order: Order;
+  /** The cancellation is in flight: confirming again is disabled until the API answers. */
+  pending?: boolean;
   onDismiss: () => void;
   onConfirm: (reason: CancellationReason) => void;
 };
 
 /**
  * "Cancellation Confirmation · #NNNN": modal over the whole screen. Nothing changes until
- * "Confirmar cancelación"; "Volver", Escape or the backdrop dismiss it.
+ * "Confirmar cancelación" and the API answers; "Volver", Escape or the backdrop dismiss it.
  */
-export function CancelOrderDialog({ order, onDismiss, onConfirm }: CancelOrderDialogProps) {
+export function CancelOrderDialog({ order, pending = false, onDismiss, onConfirm }: CancelOrderDialogProps) {
   const [reason, setReason] = useState<CancellationReason>(CANCELLATION_REASONS[0].id);
   const backRef = useRef<HTMLButtonElement>(null);
   const titleId = useId();
@@ -27,9 +29,10 @@ export function CancelOrderDialog({ order, onDismiss, onConfirm }: CancelOrderDi
   }, []);
 
   return (
-    // The 03 dialog sits 240px from the top of the 900px frame, centered horizontally.
+    // From `lg` the 03 dialog sits 240px from the top of the 900px frame, centered horizontally;
+    // below it the card is centered with 16px margins and scrolls when the screen is short.
     <div
-      className="fixed inset-0 z-40 flex items-start justify-center bg-ink/44 pt-[240px]"
+      className="fixed inset-0 z-40 flex items-center justify-center bg-ink/44 p-4 lg:items-start lg:p-0 lg:pt-[240px]"
       onClick={(event) => {
         if (event.target === event.currentTarget) onDismiss();
       }}
@@ -42,13 +45,13 @@ export function CancelOrderDialog({ order, onDismiss, onConfirm }: CancelOrderDi
         onKeyDown={(event) => {
           if (event.key === "Escape") onDismiss();
         }}
-        className="flex w-[420px] flex-col gap-4 rounded-auth bg-surface p-[22px] shadow-modal"
+        className="flex max-h-full w-full max-w-[420px] flex-col gap-4 overflow-y-auto rounded-auth bg-surface p-[18px] shadow-modal lg:w-[420px] lg:p-[22px]"
       >
         <span className="flex size-10 items-center justify-center rounded-full bg-danger-bg text-danger">
           <TriangleAlert size={20} aria-hidden="true" />
         </span>
         <h2 id={titleId} className="text-[20px] font-bold text-ink">
-          Cancelar pedido #{order.id}
+          Cancelar pedido #{order.number}
         </h2>
         <p className="text-[12px] font-semibold text-muted">{formatOrderLocation(order)}</p>
         <p id={descriptionId} className="w-full text-[12px]/[17px] text-muted">
@@ -78,16 +81,18 @@ export function CancelOrderDialog({ order, onDismiss, onConfirm }: CancelOrderDi
             ref={backRef}
             type="button"
             onClick={onDismiss}
-            className="flex h-[42px] flex-1 items-center justify-center rounded-[9px] text-[12px] font-bold text-ink outline-1 -outline-offset-[0.5px] outline-line hover:bg-cream"
+            className="flex h-11 flex-1 items-center justify-center rounded-[9px] lg:h-[42px] text-[12px] font-bold text-ink outline-1 -outline-offset-[0.5px] outline-line hover:bg-cream"
           >
             Volver
           </button>
           <button
             type="button"
+            disabled={pending}
+            aria-busy={pending}
             onClick={() => onConfirm(reason)}
-            className="flex h-[42px] flex-1 items-center justify-center rounded-[9px] bg-danger text-[12px] font-bold text-white hover:bg-danger/92"
+            className="flex h-11 flex-1 items-center justify-center rounded-[9px] lg:h-[42px] bg-danger text-[12px] font-bold text-white hover:bg-danger/92 disabled:cursor-wait disabled:opacity-60"
           >
-            Confirmar cancelación
+            {pending ? "Cancelando…" : "Confirmar cancelación"}
           </button>
         </div>
       </div>
