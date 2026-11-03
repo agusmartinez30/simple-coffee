@@ -289,11 +289,17 @@ model CatalogProduct {
   /// "CAF-014": category prefix and sequence unless given.
   sku                String               @unique
   name               String
+  /// Display name for quantities above one; null when it is the name itself.
+  plural             String?
   description        String               @default("")
   /// Integer ARS pesos, greater than 0.
   price              Int
   categoryId         String
   category           CatalogCategory      @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  /// Public path or URL of the main photo.
+  image              String?
+  /// Consumption moment ids ("desayunar", "merendar", "cenar", "tomar").
+  moments            String[]             @default([])
   publication        CatalogPublication   @default(DRAFT)
   available          Boolean              @default(true)
   archived           Boolean              @default(false)

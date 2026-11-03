@@ -128,18 +128,33 @@ describe('catalog HTTP (e2e)', () => {
       })
       .expect(201);
     const product = created.body as { id: string; optionGroups: { id: string; options: { id: string }[] }[] };
-    expect(created.body).toMatchObject({ sku: 'CAF-003', position: 3, version: 1, publication: 'published', archived: false });
+    expect(created.body).toMatchObject({
+      sku: 'CAF-003',
+      position: 3,
+      version: 1,
+      publication: 'published',
+      archived: false,
+      moments: [],
+      plural: null,
+      image: null,
+    });
 
     const group = product.optionGroups[0];
     const edited = await agent
       .patch(`/catalog/products/${product.id}`)
       .send({
         description: 'Espresso cortado',
+        moments: ['desayunar', 'tomar'],
+        plural: ' Cortados ',
+        image: '/images/products/cortado.webp',
         optionGroups: [{ ...group, options: [...(group?.options ?? []), { name: 'Cacao', priceDelta: 300 }] }],
       })
       .expect(200);
     expect(edited.body).toMatchObject({
       description: 'Espresso cortado',
+      moments: ['desayunar', 'tomar'],
+      plural: 'Cortados',
+      image: '/images/products/cortado.webp',
       version: 2,
       optionGroups: [{ id: group?.id, options: [{ id: group?.options[0]?.id, name: 'Canela' }, { name: 'Cacao', priceDelta: 300 }] }],
     });
@@ -150,6 +165,7 @@ describe('catalog HTTP (e2e)', () => {
         name: 'Latte',
         price: -5,
         categoryId: 'cafes',
+        moments: ['brunch'],
         optionGroups: [{ title: 'Leche', selection: 'single', required: true, max: 2, defaultOption: 'Soja', options: [] }],
       })
       .expect(400);
@@ -158,12 +174,14 @@ describe('catalog HTTP (e2e)', () => {
       issues: [
         { path: 'name', code: 'duplicate' },
         { path: 'price', code: 'out_of_range' },
+        { path: 'moments.0', code: 'unknown_moment' },
         { path: 'optionGroups.0.max', code: 'out_of_range' },
         { path: 'optionGroups.0.defaultOption', code: 'unknown_option' },
         { path: 'optionGroups.0.options', code: 'required' },
       ],
     });
     await agent.post('/catalog/products').send({ name: 'Sin precio', categoryId: 'cafes' }).expect(400);
+    await agent.post('/catalog/products').send({ name: 'Con imagen', price: 1, categoryId: 'cafes', image: 7 }).expect(400);
     await agent.patch('/catalog/products/prod_mocha').send({ price: 1 }).expect(409);
   });
 
@@ -174,6 +192,23 @@ describe('catalog HTTP (e2e)', () => {
     const restored = await agent.post('/catalog/products/prod_latte/restore').expect(200);
     expect(restored.body).toMatchObject({ archived: false, publication: 'draft', version: 3 });
     await agent.post('/catalog/products/nope/archive').expect(404);
+  });
+
+  it('serves the customer menu without a session', async () => {
+    const server = app.getHttpServer();
+    const menu = await request(server).get('/catalog/menu').expect(200);
+    const body = menu.body as { categories: { id: string }[]; products: Record<string, unknown>[] };
+    expect(body.categories.map((category) => category.id)).toEqual(['bebidas', 'cafes']);
+    // Draft Té verde, unavailable Limonada and archived Mocha are left out.
+    expect(body.products.map((product) => product.id)).toEqual(['prod_latte']);
+    expect(Object.keys(body.products[0] ?? {}).sort()).toEqual(
+      ['allowCustomerNotes', 'categoryId', 'description', 'id', 'image', 'moments', 'name', 'optionGroups', 'plural', 'price'].sort(),
+    );
+
+    // A hidden category takes its products off the menu.
+    await agent.patch('/catalog/categories/cafes').send({ visible: false }).expect(200);
+    const hidden = await request(server).get('/catalog/menu').expect(200);
+    expect(hidden.body).toEqual({ categories: [{ id: 'bebidas', name: 'Bebidas', description: '' }], products: [] });
   });
 
   it('exports the orderable resolution for other modules', async () => {

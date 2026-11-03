@@ -5,6 +5,8 @@ import {
   createProductSku,
   getNextCommercialRank,
   getProductStatus,
+  upsertProduct,
+  type ProductCategoryOption,
   type ProductStatus,
 } from "./product-catalog";
 import {
@@ -23,6 +25,7 @@ import {
   type ProductFormErrors,
   type SaveMode,
 } from "./product-form";
+import { toFormErrors, toProductBody, type ProductBody, type ProductIssue } from "./products-mapper";
 import type { ProductsState } from "./products-state";
 
 /** The 07B editor of one product (or of a new one). */
@@ -42,6 +45,12 @@ export type EditorState = {
   nextOptionNumber: number;
   /** Next "grupo-N" id for added groups. */
   nextGroupNumber: number;
+  /** A save is waiting for the API. */
+  saving: boolean;
+  /** Field messages of the API's last rejection; cleared by the next edit. */
+  serverErrors: ProductFormErrors | null;
+  /** The API's last save failed without field errors ("No se pudo guardar"); cleared by the next edit. */
+  saveError: string | null;
 };
 
 export type EditorAction =
@@ -72,9 +81,14 @@ export type EditorAction =
   | { type: "update-option"; groupId: string; id: string; changes: Partial<Omit<OptionDraft, "id">> }
   | { type: "remove-option"; groupId: string; id: string }
   | { type: "save"; mode: SaveMode }
+  /** API saves: the container sends `getSaveRequest` and reports the answer. */
+  | { type: "save-started" }
+  | { type: "save-succeeded"; product: Product; mode: SaveMode }
+  | { type: "save-failed"; issues: readonly ProductIssue[] }
   | { type: "discard" };
 
 export const BLOCKED_SAVE_MESSAGE = "Revisá los campos marcados antes de guardar.";
+export const FAILED_SAVE_MESSAGE = "No se pudo guardar el producto. Intentá de nuevo.";
 
 function openEditor(productId: string | null, draft: ProductDraft): EditorState {
   return {
@@ -86,11 +100,17 @@ function openEditor(productId: string | null, draft: ProductDraft): EditorState 
     editingGroupId: null,
     nextOptionNumber: 1,
     nextGroupNumber: 1,
+    saving: false,
+    serverErrors: null,
+    saveError: null,
   };
 }
 
 function withDraft(state: ProductsState, editor: EditorState, changes: Partial<ProductDraft>): ProductsState {
-  return { ...state, editor: { ...editor, draft: { ...editor.draft, ...changes } } };
+  return {
+    ...state,
+    editor: { ...editor, draft: { ...editor.draft, ...changes }, serverErrors: null, saveError: null },
+  };
 }
 
 /** The draft with one group changed by `update`. */
@@ -131,22 +151,35 @@ function newProductBase(draft: ProductDraft, products: readonly Product[]): Prod
   };
 }
 
-function saveEditor(state: ProductsState, editor: EditorState, mode: SaveMode): ProductsState {
-  const otherNames = state.products
+function otherProductNames(state: ProductsState, editor: EditorState): string[] {
+  return state.products
     .filter((product) => !product.archived && product.id !== editor.productId)
     .map((product) => product.name);
-  if (hasFormErrors(validateProductDraft(editor.draft, { mode, otherNames }))) {
-    return { ...state, editor: { ...editor, attemptedMode: mode }, notice: BLOCKED_SAVE_MESSAGE };
-  }
-  const existing = state.products.find((product) => product.id === editor.productId);
-  const product = applyProductDraft(editor.draft, existing ?? newProductBase(editor.draft, state.products), mode);
-  const products = existing
-    ? state.products.map((candidate) => (candidate.id === product.id ? product : candidate))
-    : [...state.products, product];
+}
+
+/** The product a valid draft saves as, or null when the form blocks the save. */
+function savedProductOf(
+  state: ProductsState,
+  editor: EditorState,
+  mode: SaveMode,
+): { product: Product; existing: Product | null } | null {
+  if (hasFormErrors(validateProductDraft(editor.draft, { mode, otherNames: otherProductNames(state, editor) }))) return null;
+  const existing = state.products.find((product) => product.id === editor.productId) ?? null;
+  return { product: applyProductDraft(editor.draft, existing ?? newProductBase(editor.draft, state.products), mode), existing };
+}
+
+function saveEditor(state: ProductsState, editor: EditorState, mode: SaveMode): ProductsState {
+  const saved = savedProductOf(state, editor, mode);
+  if (!saved) return { ...state, editor: { ...editor, attemptedMode: mode }, notice: BLOCKED_SAVE_MESSAGE };
+  return commitSavedProduct(state, editor, saved.product, mode);
+}
+
+/** Puts the saved product in the list (replacing it, or last when new) and reopens the editor on it. */
+function commitSavedProduct(state: ProductsState, editor: EditorState, product: Product, mode: SaveMode): ProductsState {
   const saved = toProductDraft(product);
   return {
     ...state,
-    products,
+    products: upsertProduct(state.products, product),
     version: state.version + 1,
     editor: {
       ...openEditor(product.id, saved),
@@ -279,9 +312,38 @@ export function editorReducer(state: ProductsState, action: EditorAction): Produ
     }
     case "save":
       return saveEditor(state, editor, action.mode);
+    case "save-started":
+      return { ...state, editor: { ...editor, saving: true, serverErrors: null, saveError: null }, notice: "Guardando…" };
+    case "save-succeeded":
+      // Another product was opened meanwhile: only the list takes the saved one.
+      if (!editor.saving) return { ...state, products: upsertProduct(state.products, action.product), version: state.version + 1 };
+      return commitSavedProduct(state, editor, action.product, action.mode);
+    case "save-failed": {
+      const serverErrors = toFormErrors(action.issues, draft);
+      const name = editor.saved.name.trim() || draft.name.trim() || "el producto";
+      return hasFormErrors(serverErrors)
+        ? { ...state, editor: { ...editor, saving: false, serverErrors }, notice: BLOCKED_SAVE_MESSAGE }
+        : {
+            ...state,
+            editor: { ...editor, saving: false, saveError: FAILED_SAVE_MESSAGE },
+            notice: `No se pudo guardar ${name}. Intentá de nuevo.`,
+          };
+    }
     case "discard":
       return { ...state, editor: openEditor(editor.productId, editor.saved) };
   }
+}
+
+/** What the API needs to save the editor: PATCH of `productId`, or POST when it is null. */
+export type SaveRequest = { productId: string | null; body: ProductBody };
+
+/** The request of a save in `mode`, or null when the form blocks it (dispatch `save` to show why). */
+export function getSaveRequest(state: ProductsState, mode: SaveMode): SaveRequest | null {
+  const { editor } = state;
+  if (!editor) return null;
+  const saved = savedProductOf(state, editor, mode);
+  if (!saved) return null;
+  return { productId: saved.existing?.id ?? null, body: toProductBody(saved.product, saved.existing) };
 }
 
 export type SaveTone = "neutral" | "warning" | "danger";
@@ -319,10 +381,25 @@ export type EditorView = {
   primarySaveMode: SaveMode;
   /** Groups of the draft, in display order. */
   optionGroups: OptionGroupView[];
+  /** Options of the "Categoría" select. */
+  categories: readonly ProductCategoryOption[];
   /** 07C "Cappuccino publicado". */
   previewTitle: string;
   preview: PreviewModel;
 };
+
+function mergeErrors(server: ProductFormErrors, form: ProductFormErrors): ProductFormErrors {
+  const groupIds = new Set([...Object.keys(server.optionGroups ?? {}), ...Object.keys(form.optionGroups ?? {})]);
+  const optionGroups = Object.fromEntries(
+    [...groupIds].map((id) => {
+      const fromServer = server.optionGroups?.[id] ?? {};
+      const fromForm = form.optionGroups?.[id] ?? {};
+      const options = { ...fromServer.options, ...fromForm.options };
+      return [id, { ...fromServer, ...fromForm, ...(Object.keys(options).length > 0 ? { options } : {}) }];
+    }),
+  );
+  return { ...server, ...form, ...(groupIds.size > 0 ? { optionGroups } : {}) };
+}
 
 const PREVIEW_STATUS: Record<ProductStatus, string> = {
   published: "publicado",
@@ -338,18 +415,23 @@ export function getEditorView(state: ProductsState): EditorView | null {
   const status: ProductStatus = product ? getProductStatus(product) : "draft";
   const changes = getProductChanges(editor.saved, editor.draft);
   const dirty = changes.length > 0;
-  const otherNames = state.products
-    .filter((candidate) => !candidate.archived && candidate.id !== editor.productId)
-    .map((candidate) => candidate.name);
-  const errors = editor.attemptedMode
-    ? validateProductDraft(editor.draft, { mode: editor.attemptedMode, otherNames })
+  const formErrors = editor.attemptedMode
+    ? validateProductDraft(editor.draft, { mode: editor.attemptedMode, otherNames: otherProductNames(state, editor) })
     : {};
+  // The form's own messages win over the API's for the same field.
+  const errors = editor.serverErrors ? mergeErrors(editor.serverErrors, formErrors) : formErrors;
   const blocked = hasFormErrors(errors);
 
   let saveTitle = "Producto sin cambios";
   let saveTone: SaveTone = "neutral";
-  if (blocked) {
+  if (editor.saving) {
+    saveTitle = "Guardando…";
+    saveTone = "warning";
+  } else if (blocked) {
     saveTitle = BLOCKED_SAVE_MESSAGE;
+    saveTone = "danger";
+  } else if (editor.saveError) {
+    saveTitle = editor.saveError;
     saveTone = "danger";
   } else if (dirty) {
     saveTitle = "Tenés cambios sin guardar";
@@ -379,7 +461,8 @@ export function getEditorView(state: ProductsState): EditorView | null {
       meta: getOptionGroupMeta(group),
       options: group.options,
     })),
+    categories: state.categories,
     previewTitle: product ? `${product.name} ${PREVIEW_STATUS[status]}` : "Nuevo producto sin guardar",
-    preview: getPreviewModel(editor.draft),
+    preview: getPreviewModel(editor.draft, state.categories),
   };
 }

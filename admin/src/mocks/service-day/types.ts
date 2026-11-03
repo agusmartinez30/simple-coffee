@@ -10,8 +10,14 @@ import type {
   StaffMember,
 } from "../types";
 
-/** Menu categories of 07 · Productos ("Cafés", "Tostadas", …). */
-export type ProductCategoryId =
+/**
+ * Menu categories of 07 · Productos ("Cafés", "Tostadas", …): the mock ones, or any slug the API
+ * gives a category created later (`string & {}` keeps the known ids suggested).
+ */
+export type ProductCategoryId = MockProductCategoryId | (string & {});
+
+/** Categories of the mock catalogue (and of the API seed). */
+export type MockProductCategoryId =
   | "cafes"
   | "bebidas"
   | "panaderia"

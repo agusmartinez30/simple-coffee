@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { CartLine } from "@/features/cart";
+import { MOCK_MENU } from "@/mocks/menu";
 import { formatUnits, getCartLineView } from "./cart-lines";
 
 const line = (overrides: Partial<CartLine>): CartLine => ({
@@ -21,6 +22,7 @@ describe("getCartLineView", () => {
   it("describes customized lines with their chosen options", () => {
     const view = getCartLineView(
       line({ choiceIds: ["mediano", "almendras"], note: "Poco caliente" }),
+      MOCK_MENU,
     );
     expect(view).toMatchObject({
       name: "Cappuccino",
@@ -33,7 +35,7 @@ describe("getCartLineView", () => {
   });
 
   it("shows units and unit price for plain lines", () => {
-    const view = getCartLineView(line({ productId: "medialunas", quantity: 2 }));
+    const view = getCartLineView(line({ productId: "medialunas", quantity: 2 }), MOCK_MENU);
     expect(view).toMatchObject({
       name: "Medialunas de manteca",
       lineTotal: 7600,
@@ -42,6 +44,14 @@ describe("getCartLineView", () => {
   });
 
   it("returns null for products that no longer exist", () => {
-    expect(getCartLineView(line({ productId: "ghost" }))).toBeNull();
+    expect(getCartLineView(line({ productId: "ghost" }), MOCK_MENU)).toBeNull();
+  });
+
+  it("leaves the image unset for products without a photo", () => {
+    const menu = {
+      ...MOCK_MENU,
+      products: [{ id: "agua", slug: "agua", name: "Agua", description: "", price: 1500, category: "bebidas" }],
+    };
+    expect(getCartLineView(line({ productId: "agua" }), menu)?.image).toBeUndefined();
   });
 });

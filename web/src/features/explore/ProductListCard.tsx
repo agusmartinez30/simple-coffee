@@ -1,7 +1,7 @@
-import Image from "next/image";
 import Link from "next/link";
 import type { Product } from "@/mocks/types";
 import { QuickAddButton } from "@/features/cart";
+import { ProductPhoto } from "@/features/menu/ProductPhoto";
 import { formatPrice } from "@/shared/lib/format-price";
 
 type ProductListCardProps = {
@@ -14,14 +14,7 @@ export function ProductListCard({ product, eager = false }: ProductListCardProps
   return (
     <article className="relative flex min-w-0 flex-col gap-2">
       <div className="relative h-[126px] w-full shrink-0 overflow-hidden rounded-2xl">
-        <Image
-          src={product.image}
-          alt=""
-          fill
-          sizes="171px"
-          loading={eager ? "eager" : undefined}
-          className="object-cover"
-        />
+        <ProductPhoto src={product.image} alt="" sizes="171px" eager={eager} />
         {product.badge ? (
           <span className="absolute top-2.5 left-2.5 flex h-6 items-center rounded-xl bg-white/91 px-[9px] text-[9px] font-bold text-brand">
             {product.badge}

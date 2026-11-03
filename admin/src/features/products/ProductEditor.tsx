@@ -176,7 +176,7 @@ export function ProductEditor({ editor, view, onAction }: ProductEditorProps) {
       </header>
       <div className="flex w-full flex-col gap-3.5 lg:min-h-0 lg:flex-1 lg:flex-row lg:items-start">
         <div className="flex w-full min-w-0 flex-col gap-3.5 rounded-card bg-surface p-4 outline-1 -outline-offset-[0.5px] outline-line lg:h-full lg:w-[758px] lg:shrink-0 lg:overflow-y-auto lg:p-[18px]">
-          <GeneralInformation draft={draft} errors={view.errors} onAction={onAction} />
+          <GeneralInformation draft={draft} errors={view.errors} categories={view.categories} onAction={onAction} />
           <hr className="w-full shrink-0 border-[#e9e6df]" />
           <ConsumptionMoments moments={draft.moments} onAction={onAction} />
           <hr className="w-full shrink-0 border-[#e9e6df]" />

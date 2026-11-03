@@ -1,7 +1,8 @@
 /** Integer amount in Argentine pesos (no cents). */
 export type Ars = number;
 
-export type CategoryId = "todos" | "cafes" | "desayunos" | "comidas" | "bebidas" | "postres";
+/** Menu category id: an API category slug ("cafes", "panaderia", …). */
+export type CategoryId = string;
 
 export type Category = {
   id: CategoryId;
@@ -36,6 +37,8 @@ export type Product = {
   id: string;
   slug: string;
   name: string;
+  /** Display name for quantities above one, when it differs ("Medialunas"). */
+  plural?: string;
   /** Shorter name for compact cards, when the design uses one. */
   shortName?: string;
   description: string;
@@ -43,28 +46,37 @@ export type Product = {
   longDescription?: string;
   /** Price of the default configuration (what menu cards display). */
   price: Ars;
-  category: Exclude<CategoryId, "todos">;
-  image: string;
+  category: CategoryId;
+  /** Public path of the photo; unset shows a neutral placeholder. */
+  image?: string;
   badge?: ProductBadge;
+  /** False hides "Indicaciones especiales"; unset allows notes. */
+  allowCustomerNotes?: boolean;
   optionGroups?: OptionGroup[];
 };
 
 export type MomentId = "para-desayunar" | "para-merendar" | "para-cenar" | "para-tomar";
 
+/** Sub-filter chip of a moment: "Todos" or one menu category. */
 export type MomentFilter = {
   id: string;
   label: string;
-  /** Products shown for this filter; omitted for "Todos" (all moment products). */
-  productIds?: string[];
 };
 
+/** Local definition of a consumption moment; which products belong to it comes from the menu. */
 export type Moment = {
   id: MomentId;
   title: string;
   subtitle: string;
   image: string;
-  productIds: string[];
-  filters: MomentFilter[];
+};
+
+/** The customer menu: visible categories that have products, products and moment membership. */
+export type Menu = {
+  categories: Category[];
+  products: Product[];
+  /** Product ids of each moment, in menu order. */
+  momentProductIds: Record<MomentId, string[]>;
 };
 
 export type OrderLine = {

@@ -1,13 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, ShoppingBag } from "lucide-react";
-import { getUnitPrice } from "@/mocks/menu";
-import type { CategoryId, Product } from "@/mocks/types";
+import type { Product } from "@/mocks/types";
 import { useCart } from "@/features/cart";
+import { useMenu } from "@/features/menu/MenuProvider";
+import { findMenuCategory } from "@/features/menu/menu-mapper";
+import { ProductPhoto } from "@/features/menu/ProductPhoto";
+import { getUnitPrice } from "@/features/menu/product-pricing";
 import { formatPrice } from "@/shared/lib/format-price";
 import { Notice, PrimaryButton, QuantityStepper, StickyFooter } from "@/shared/ui";
 import { OptionGroupField } from "./OptionGroupField";
@@ -24,17 +26,9 @@ type ProductDetailProps = {
   product: Product;
 };
 
-const CATEGORY_TAGS: Record<Exclude<CategoryId, "todos">, string> = {
-  cafes: "CAFETERÍA",
-  desayunos: "DESAYUNOS",
-  comidas: "COMIDAS",
-  bebidas: "BEBIDAS",
-  postres: "POSTRES",
-};
-
-/** Products with a dedicated, larger hero photo. */
+/** Product photos with a dedicated, larger hero version. */
 const HERO_IMAGES: Record<string, string> = {
-  cappuccino: "/images/products/cappuccino-hero.webp",
+  "/images/products/cappuccino.webp": "/images/products/cappuccino-hero.webp",
 };
 
 const MAX_NOTE_LENGTH = 140;
@@ -46,6 +40,8 @@ const roundAction =
 export function ProductDetail({ product }: ProductDetailProps) {
   const router = useRouter();
   const { addItem } = useCart();
+  const category = findMenuCategory(useMenu().menu, product.category);
+  const allowNotes = product.allowCustomerNotes !== false;
   const [selection, setSelection] = useState<OptionSelection>(() => initSelection(product));
   const [note, setNote] = useState("");
   const [quantity, setQuantity] = useState(1);
@@ -62,7 +58,7 @@ export function ProductDetail({ product }: ProductDetailProps) {
       setShowErrors(true);
       return;
     }
-    addItem({ productId: product.id, choiceIds, note, quantity });
+    addItem({ productId: product.id, choiceIds, note: allowNotes ? note : undefined, quantity });
     router.push("/explore");
   }
 
@@ -85,20 +81,20 @@ export function ProductDetail({ product }: ProductDetailProps) {
 
       <main className="flex flex-1 flex-col gap-5 px-4 pt-2 pb-6">
         <div className="relative h-[286px] w-full shrink-0 overflow-hidden rounded-[22px] bg-[#dad4c8]">
-          <Image
-            src={HERO_IMAGES[product.id] ?? product.image}
+          <ProductPhoto
+            src={product.image ? (HERO_IMAGES[product.image] ?? product.image) : undefined}
             alt={product.name}
-            fill
             sizes="358px"
-            loading="eager"
-            className="object-cover"
+            eager
           />
         </div>
 
         <section className="flex flex-col items-start gap-2">
-          <span className="flex h-6 items-center rounded-xl bg-brand-tint px-2.5 text-[9px] font-bold tracking-[1.1px] text-brand">
-            {CATEGORY_TAGS[product.category]}
-          </span>
+          {category ? (
+            <span className="flex h-6 items-center rounded-xl bg-brand-tint px-2.5 text-[9px] font-bold tracking-[1.1px] text-brand">
+              {category.label.toLocaleUpperCase("es-AR")}
+            </span>
+          ) : null}
           <h1 className="font-display text-[36px] leading-[34px] font-bold text-ink">
             {product.name}
           </h1>
@@ -122,19 +118,21 @@ export function ProductDetail({ product }: ProductDetailProps) {
           />
         ))}
 
-        <section className="flex flex-col gap-2">
-          <label htmlFor="product-note" className="text-[16px] font-bold text-ink">
-            Indicaciones especiales
-          </label>
-          <textarea
-            id="product-note"
-            value={note}
-            maxLength={MAX_NOTE_LENGTH}
-            onChange={(event) => setNote(event.target.value)}
-            placeholder="Ej: poco caliente, sin azúcar..."
-            className="h-[88px] w-full resize-none rounded-card bg-surface p-3 text-[12px] text-ink outline-1 -outline-offset-[0.5px] outline-line outline-solid placeholder:text-[#8a8986] focus:outline-2 focus:outline-brand"
-          />
-        </section>
+        {allowNotes ? (
+          <section className="flex flex-col gap-2">
+            <label htmlFor="product-note" className="text-[16px] font-bold text-ink">
+              Indicaciones especiales
+            </label>
+            <textarea
+              id="product-note"
+              value={note}
+              maxLength={MAX_NOTE_LENGTH}
+              onChange={(event) => setNote(event.target.value)}
+              placeholder="Ej: poco caliente, sin azúcar..."
+              className="h-[88px] w-full resize-none rounded-card bg-surface p-3 text-[12px] text-ink outline-1 -outline-offset-[0.5px] outline-line outline-solid placeholder:text-[#8a8986] focus:outline-2 focus:outline-brand"
+            />
+          </section>
+        ) : null}
 
         <section className="flex items-center justify-between">
           <h2 className="text-[16px] font-bold text-ink">Cantidad</h2>

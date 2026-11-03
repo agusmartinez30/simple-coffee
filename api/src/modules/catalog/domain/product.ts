@@ -10,6 +10,15 @@ export const PRODUCT_DESCRIPTION_MAX_LENGTH = 140;
 export const PRICE_MAX = 1_000_000;
 export const OPTION_GROUP_TITLE_MAX_LENGTH = 40;
 export const OPTION_NAME_MAX_LENGTH = 40;
+export const PRODUCT_PLURAL_MAX_LENGTH = PRODUCT_NAME_MAX_LENGTH;
+/** Public path or URL of the main photo (no upload: the image is stored as text). */
+export const PRODUCT_IMAGE_MAX_LENGTH = 500;
+
+/** Consumption moments of the admin 07B chips and 08A collections. */
+export const PRODUCT_MOMENTS = ['desayunar', 'merendar', 'cenar', 'tomar'] as const;
+export type ProductMoment = (typeof PRODUCT_MOMENTS)[number];
+
+export const isProductMoment = (value: string): value is ProductMoment => (PRODUCT_MOMENTS as readonly string[]).includes(value);
 
 export const PRODUCT_PUBLICATIONS = ['published', 'draft'] as const;
 export type ProductPublication = (typeof PRODUCT_PUBLICATIONS)[number];
@@ -41,9 +50,15 @@ export interface Product {
   /** "CAF-014": category prefix and sequence unless given; unique, archived products included. */
   sku: string;
   name: string;
+  /** Display name for quantities above one ("Medialunas"); null when it is the name itself. */
+  plural: string | null;
   description: string;
   price: number;
   categoryId: string;
+  /** Public path or URL of the main photo; null shows a placeholder. */
+  image: string | null;
+  /** Moments the product is offered for, without repeats. */
+  moments: ProductMoment[];
   publication: ProductPublication;
   available: boolean;
   /** Never hard-deleted: archived products leave the menu and the admin list but keep their sku. */
@@ -80,9 +95,15 @@ export interface OptionGroupDraft {
 export interface ProductDraft {
   sku?: string;
   name: string;
+  /** Blank means none. */
+  plural: string | null;
   description: string;
   price: number;
   categoryId: string;
+  /** Blank means none. */
+  image: string | null;
+  /** Moment ids as sent; checked against `PRODUCT_MOMENTS`. */
+  moments: string[];
   publication: ProductPublication;
   available: boolean;
   allowCustomerNotes: boolean;
@@ -95,9 +116,12 @@ type OptionPath = `${GroupPath}.options.${number}`;
 export type ProductIssue =
   | { path: 'sku'; code: 'invalid_format' | 'duplicate' }
   | { path: 'name'; code: 'required' | 'too_long' | 'duplicate' }
+  | { path: 'plural'; code: 'too_long' }
   | { path: 'description'; code: 'too_long' }
   | { path: 'price'; code: 'out_of_range' }
   | { path: 'categoryId'; code: 'unknown_category' }
+  | { path: 'image'; code: 'too_long' }
+  | { path: `moments.${number}`; code: 'unknown_moment' | 'duplicate' }
   | { path: `${GroupPath}.id`; code: 'unknown_group' }
   | { path: `${GroupPath}.title`; code: 'required' | 'too_long' | 'duplicate' }
   | { path: `${GroupPath}.max`; code: 'out_of_range' }
@@ -109,12 +133,21 @@ export type ProductIssue =
 
 const SKU_PATTERN = /^[A-Z0-9]{1,8}(-[A-Z0-9]{1,8}){0,2}$/;
 
+/** Trimmed text, null when blank. */
+function optionalText(value: string | null): string | null {
+  const trimmed = value?.trim() ?? '';
+  return trimmed === '' ? null : trimmed;
+}
+
 export function normalizeProductDraft(draft: ProductDraft): ProductDraft {
   return {
     ...draft,
     ...(draft.sku === undefined ? {} : { sku: draft.sku.trim().toUpperCase() }),
     name: draft.name.trim(),
+    plural: optionalText(draft.plural),
     description: draft.description.trim(),
+    image: optionalText(draft.image),
+    moments: draft.moments.map((moment) => moment.trim()),
     optionGroups: draft.optionGroups.map((group) => ({
       ...group,
       title: group.title.trim(),
@@ -177,8 +210,9 @@ function groupIssues(group: OptionGroupDraft, index: number, titles: readonly st
 }
 
 /**
- * Unique name (among products not archived) up to 60 characters, description up to 140, an integer
- * price from 1 to 1,000,000, an existing category, a unique sku when given and valid option groups.
+ * Unique name (among products not archived) up to 60 characters, plural up to 60, description up
+ * to 140, an integer price from 1 to 1,000,000, an existing category, an image path up to 500,
+ * known moments without repeats, a unique sku when given and valid option groups.
  */
 export function productDraftIssues(input: ProductDraft, { categoryIds, others, current }: ProductRulesContext): ProductIssue[] {
   const draft = normalizeProductDraft(input);
@@ -193,9 +227,15 @@ export function productDraftIssues(input: ProductDraft, { categoryIds, others, c
     others.filter((product) => !product.archived).map((product) => product.name),
   );
   if (name) issues.push({ path: 'name', code: name });
+  if ((draft.plural?.length ?? 0) > PRODUCT_PLURAL_MAX_LENGTH) issues.push({ path: 'plural', code: 'too_long' });
   if (draft.description.length > PRODUCT_DESCRIPTION_MAX_LENGTH) issues.push({ path: 'description', code: 'too_long' });
   if (!isAmount(draft.price, 1)) issues.push({ path: 'price', code: 'out_of_range' });
   if (!categoryIds.includes(draft.categoryId)) issues.push({ path: 'categoryId', code: 'unknown_category' });
+  if ((draft.image?.length ?? 0) > PRODUCT_IMAGE_MAX_LENGTH) issues.push({ path: 'image', code: 'too_long' });
+  draft.moments.forEach((moment, index) => {
+    if (!isProductMoment(moment)) issues.push({ path: `moments.${index}`, code: 'unknown_moment' });
+    else if (draft.moments.indexOf(moment) < index) issues.push({ path: `moments.${index}`, code: 'duplicate' });
+  });
   draft.optionGroups.forEach((group, index) => {
     issues.push(
       ...groupIssues(
@@ -215,13 +255,16 @@ export type ProductIdentity = Pick<Product, 'id' | 'sku' | 'archived' | 'positio
 /** The product of a valid, normalized draft; new groups and options get ids from `nextId`. */
 export function assembleProduct(draft: ProductDraft, identity: ProductIdentity, nextId: () => string): Product {
   // The sku comes from the identity: given, generated or kept.
-  const { name, description, price, categoryId, publication, available, allowCustomerNotes, optionGroups } = draft;
+  const { name, plural, description, price, categoryId, image, moments, publication, available, allowCustomerNotes, optionGroups } = draft;
   return {
     ...identity,
     name,
+    plural,
     description,
     price,
     categoryId,
+    image,
+    moments: moments.filter(isProductMoment),
     publication,
     available,
     allowCustomerNotes,
@@ -249,9 +292,12 @@ export function toProductDraft(product: Product): ProductDraft {
   return {
     sku: product.sku,
     name: product.name,
+    plural: product.plural,
     description: product.description,
     price: product.price,
     categoryId: product.categoryId,
+    image: product.image,
+    moments: [...product.moments],
     publication: product.publication,
     available: product.available,
     allowCustomerNotes: product.allowCustomerNotes,

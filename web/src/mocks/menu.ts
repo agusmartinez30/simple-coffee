@@ -1,9 +1,12 @@
-import type { Ars, Category, OptionGroup, Product } from "./types";
+/**
+ * Fixture menu for tests and the seeded table orders (`mocks/table.ts`). The customer app
+ * reads its real menu from the API (`features/menu`).
+ */
+import type { Category, Menu, OptionGroup, Product } from "./types";
 
 const img = (slug: string) => `/images/products/${slug}.webp`;
 
 export const CATEGORIES: Category[] = [
-  { id: "todos", label: "Todos" },
   { id: "cafes", label: "Cafés" },
   { id: "desayunos", label: "Desayunos" },
   { id: "comidas", label: "Comidas" },
@@ -297,27 +300,26 @@ export function getProductBySlug(slug: string): Product | undefined {
   return PRODUCTS.find((product) => product.slug === slug);
 }
 
-/** Unit price for a product with the given selected choice ids (unknown ids are ignored). */
-export function getUnitPrice(product: Product, choiceIds: readonly string[]): Ars {
-  const deltas = (product.optionGroups ?? [])
-    .flatMap((group) => group.choices)
-    .filter((choice) => choiceIds.includes(choice.id))
-    .reduce((sum, choice) => sum + choice.priceDelta, 0);
-  return product.price + deltas;
-}
+/** The fixture products as a menu, with the moment membership of the original designs. */
+export const MOCK_MENU: Menu = {
+  categories: CATEGORIES,
+  products: PRODUCTS,
+  momentProductIds: {
+    "para-desayunar": [
+      "tostadas-de-campo",
+      "huevos-revueltos",
+      "croissant",
+      "combo-central",
+      "medialunas",
+      "tostadas-con-palta",
+      "omelette",
+      "combo-medialunas",
+    ],
+    "para-merendar": ["cappuccino", "medialunas", "croissant", "alfajor-de-maicena", "budin-de-limon", "latte"],
+    "para-cenar": ["tostado-jamon-queso", "sandwich-caprese", "omelette", "limonada"],
+    "para-tomar": ["espresso-doble", "cappuccino", "flat-white", "cafe-con-leche", "jugo-de-naranja", "limonada"],
+  },
+};
 
-/** Choice ids of the default configuration: each group's preselected choice. */
-export function getDefaultChoiceIds(product: Product): string[] {
-  return (product.optionGroups ?? []).flatMap((group) =>
-    group.defaultChoiceId ? [group.defaultChoiceId] : [],
-  );
-}
-
-/** Labels of the selected choices joined as shown in the designs: "Mediano · Leche de almendras". */
-export function describeChoices(product: Product, choiceIds: readonly string[]): string {
-  return (product.optionGroups ?? [])
-    .flatMap((group) => group.choices)
-    .filter((choice) => choiceIds.includes(choice.id))
-    .map((choice) => choice.label)
-    .join(" · ");
-}
+// Pricing helpers live with the menu feature; re-exported for the fixtures and their tests.
+export { describeChoices, getDefaultChoiceIds, getUnitPrice } from "@/features/menu/product-pricing";

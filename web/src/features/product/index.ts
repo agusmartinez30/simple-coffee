@@ -1,4 +1,5 @@
 export { ProductDetail } from "./ProductDetail";
+export { ProductScreen } from "./ProductScreen";
 export { OptionGroupField } from "./OptionGroupField";
 export {
   formatChoicePrice,

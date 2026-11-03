@@ -1,26 +1,33 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
-import { CATEGORIES } from "@/mocks/menu";
-import { CategoryResults, getCategoryById } from "@/features/explore";
+import { CategoryScreen } from "@/features/explore";
+import { MenuLoading, MenuScreen } from "@/features/menu";
 
-/** Every menu category is known ahead of time, so all category pages are prerendered. */
-export function generateStaticParams() {
-  return CATEGORIES.filter((category) => category.id !== "todos").map((category) => ({
-    category: category.id,
-  }));
+export const metadata: Metadata = { title: "Categoría · Café Central" };
+
+/**
+ * Categories come from the menu API, so ids are not known at build time: the route is dynamic
+ * (params read behind Suspense) and the category loads in the browser.
+ */
+export default function ExploreCategoryPage({ params }: PageProps<"/explore/categoria/[category]">) {
+  return (
+    <Suspense
+      fallback={
+        <MenuScreen>
+          <MenuLoading />
+        </MenuScreen>
+      }
+    >
+      <CategoryFromParams params={params} />
+    </Suspense>
+  );
 }
 
-export async function generateMetadata({
+async function CategoryFromParams({
   params,
-}: PageProps<"/explore/categoria/[category]">): Promise<Metadata> {
-  const category = getCategoryById((await params).category);
-  return { title: category ? `${category.label} · Café Central` : "Café Central" };
-}
-
-export default async function ExploreCategoryPage({
-  params,
-}: PageProps<"/explore/categoria/[category]">) {
-  const category = getCategoryById((await params).category);
-  if (!category) notFound();
-  return <CategoryResults category={category} />;
+}: {
+  params: PageProps<"/explore/categoria/[category]">["params"];
+}) {
+  const { category } = await params;
+  return <CategoryScreen categoryId={category} />;
 }

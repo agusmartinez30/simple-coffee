@@ -1,5 +1,6 @@
-import { getProductById, getUnitPrice } from "@/mocks/menu";
-import type { Ars } from "@/mocks/types";
+import { findMenuProduct } from "@/features/menu/menu-mapper";
+import { getUnitPrice } from "@/features/menu/product-pricing";
+import type { Ars, Menu } from "@/mocks/types";
 
 export type CartLine = {
   /** Deterministic key: identical product + choices + note share one line. */
@@ -73,14 +74,14 @@ export function selectItemCount(state: CartState): number {
   return state.lines.reduce((sum, line) => sum + line.quantity, 0);
 }
 
-export function selectLineUnitPrice(line: CartLine): Ars | undefined {
-  const product = getProductById(line.productId);
+export function selectLineUnitPrice(line: CartLine, menu: Menu): Ars | undefined {
+  const product = findMenuProduct(menu, line.productId);
   return product ? getUnitPrice(product, line.choiceIds) : undefined;
 }
 
-/** Sum of every line at its configured unit price; unknown products are skipped. */
-export function selectSubtotal(state: CartState): Ars {
-  return state.lines.reduce((sum, line) => sum + (selectLineUnitPrice(line) ?? 0) * line.quantity, 0);
+/** Sum of every line at its configured unit price; products not on the menu are skipped. */
+export function selectSubtotal(state: CartState, menu: Menu): Ars {
+  return state.lines.reduce((sum, line) => sum + (selectLineUnitPrice(line, menu) ?? 0) * line.quantity, 0);
 }
 
 function isCartLine(value: unknown): value is CartLine {

@@ -1,20 +1,29 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
-import { PRODUCTS, getProductById } from "@/mocks/menu";
-import { ProductDetail } from "@/features/product";
+import { MenuLoading, MenuScreen } from "@/features/menu";
+import { ProductScreen } from "@/features/product";
 
-/** Every product is known ahead of time, so all detail pages are prerendered. */
-export function generateStaticParams() {
-  return PRODUCTS.map((product) => ({ id: product.id }));
+export const metadata: Metadata = { title: "Detalle del producto · Café Central" };
+
+/**
+ * Products come from the menu API, so ids are not known at build time: the route is dynamic
+ * (params read behind Suspense) and the product loads in the browser.
+ */
+export default function ProductPage({ params }: PageProps<"/product/[id]">) {
+  return (
+    <Suspense
+      fallback={
+        <MenuScreen>
+          <MenuLoading />
+        </MenuScreen>
+      }
+    >
+      <ProductFromParams params={params} />
+    </Suspense>
+  );
 }
 
-export async function generateMetadata({ params }: PageProps<"/product/[id]">): Promise<Metadata> {
-  const product = getProductById((await params).id);
-  return { title: product ? `${product.name} · Café Central` : "Café Central" };
-}
-
-export default async function ProductPage({ params }: PageProps<"/product/[id]">) {
-  const product = getProductById((await params).id);
-  if (!product) notFound();
-  return <ProductDetail product={product} />;
+async function ProductFromParams({ params }: { params: PageProps<"/product/[id]">["params"] }) {
+  const { id } = await params;
+  return <ProductScreen productId={id} />;
 }

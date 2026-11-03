@@ -1,7 +1,6 @@
 import clsx from "clsx";
 import { ChevronDown, Search, X } from "lucide-react";
 import {
-  CATEGORY_FILTER_OPTIONS,
   MOMENT_FILTER_OPTIONS,
   PUBLICATION_FILTER_OPTIONS,
   type FilterOption,
@@ -11,6 +10,8 @@ import type { FilterKey } from "./products-state";
 
 type ProductListFiltersProps = {
   filters: ProductFilters;
+  /** Options of the "Categoría" select (from the API, or the mock categories). */
+  categoryOptions: readonly FilterOption<ProductFilters["category"]>[];
   /** Shows "Limpiar" when the search or a filter narrows the list. */
   canClear: boolean;
   onQueryChange: (query: string) => void;
@@ -56,7 +57,14 @@ function SelectFilter<T extends string>({ label, width, value, options, onChange
  * the three filter selects and "Limpiar". Below `lg` the search takes the full width and the rest
  * wraps under it, with the selects growing to fill each line.
  */
-export function ProductListFilters({ filters, canClear, onQueryChange, onFilterChange, onClear }: ProductListFiltersProps) {
+export function ProductListFilters({
+  filters,
+  categoryOptions,
+  canClear,
+  onQueryChange,
+  onFilterChange,
+  onClear,
+}: ProductListFiltersProps) {
   const onlyAvailable = filters.availability === "available";
   return (
     <div role="search" className="flex w-full shrink-0 flex-wrap items-center gap-2 lg:h-10 lg:flex-nowrap">
@@ -89,7 +97,7 @@ export function ProductListFilters({ filters, canClear, onQueryChange, onFilterC
         label="Categoría"
         width="min-w-[118px]"
         value={filters.category}
-        options={CATEGORY_FILTER_OPTIONS}
+        options={categoryOptions}
         onChange={(value) => onFilterChange("category", value)}
       />
       <SelectFilter

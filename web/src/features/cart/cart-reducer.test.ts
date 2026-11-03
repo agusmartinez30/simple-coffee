@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { MOCK_MENU } from "@/mocks/menu";
 import {
   cartReducer,
   emptyCart,
@@ -85,12 +86,12 @@ describe("cart selectors", () => {
     // Cappuccino Grande (4500 + 700) with almond milk (+900) x2 + Medialunas 3800
     let state = add(emptyCart, "cappuccino", ["grande", "almendras"], 2);
     state = add(state, "medialunas");
-    expect(selectSubtotal(state)).toBe((4500 + 700 + 900) * 2 + 3800);
+    expect(selectSubtotal(state, MOCK_MENU)).toBe((4500 + 700 + 900) * 2 + 3800);
   });
 
   it("ignores lines whose product no longer exists", () => {
     const state = add(emptyCart, "ghost-product");
-    expect(selectSubtotal(state)).toBe(0);
+    expect(selectSubtotal(state, MOCK_MENU)).toBe(0);
   });
 
   it("builds stable line keys", () => {

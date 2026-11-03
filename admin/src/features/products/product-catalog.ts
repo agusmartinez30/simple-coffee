@@ -46,11 +46,20 @@ export const PRODUCT_LIST_STATUS_LABELS: Record<ProductStatus, string> = {
 
 export type FilterOption<T extends string> = { id: T; label: string };
 
+/** A category as the filters, the editor select and the row labels show it. */
+export type ProductCategoryOption = { id: ProductCategoryId; label: string };
+
+/** Categories of the mock catalogue: the screen's forced variants, and the default before the API answers. */
+export const MOCK_CATEGORY_OPTIONS: readonly ProductCategoryOption[] = PRODUCT_CATEGORIES.map(({ id, label }) => ({ id, label }));
+
 /** Options of each select; the `all` option carries the filter name, as the closed 07A select. */
-export const CATEGORY_FILTER_OPTIONS: FilterOption<ProductFilters["category"]>[] = [
-  { id: "all", label: "Categoría" },
-  ...PRODUCT_CATEGORIES,
-];
+export function getCategoryFilterOptions(
+  categories: readonly ProductCategoryOption[] = MOCK_CATEGORY_OPTIONS,
+): FilterOption<ProductFilters["category"]>[] {
+  return [{ id: "all", label: "Categoría" }, ...categories];
+}
+
+export const CATEGORY_FILTER_OPTIONS: FilterOption<ProductFilters["category"]>[] = getCategoryFilterOptions();
 
 export const MOMENT_FILTER_OPTIONS: FilterOption<ProductFilters["moment"]>[] = [
   { id: "all", label: "Momento" },
@@ -64,8 +73,11 @@ export const PUBLICATION_FILTER_OPTIONS: FilterOption<PublicationFilter>[] = [
   { id: "archived", label: "Archivados" },
 ];
 
-export function getCategoryLabel(id: ProductCategoryId | ""): string | null {
-  return PRODUCT_CATEGORIES.find((category) => category.id === id)?.label ?? null;
+export function getCategoryLabel(
+  id: ProductCategoryId | "",
+  categories: readonly ProductCategoryOption[] = MOCK_CATEGORY_OPTIONS,
+): string | null {
+  return categories.find((category) => category.id === id)?.label ?? null;
 }
 
 export function getMomentLabel(id: ConsumptionMomentId): string {
@@ -122,9 +134,14 @@ export const SKU_PREFIXES: Record<ProductCategoryId, string> = {
   licuados: "LIC",
 };
 
+/** SKU prefix of a category: the 07A one, else the first three letters of its id ("brunch" → "BRU"), as the API does. */
+function getSkuPrefix(categoryId: ProductCategoryId): string {
+  return SKU_PREFIXES[categoryId] ?? (categoryId.replace(/[^a-z]/gi, "").slice(0, 3).toUpperCase() + "XXX").slice(0, 3);
+}
+
 /** Next SKU of the category prefix: one above the highest taken number ("CAF-018"). */
 export function createProductSku(categoryId: ProductCategoryId, existingSkus: readonly string[]): string {
-  const prefix = SKU_PREFIXES[categoryId];
+  const prefix = getSkuPrefix(categoryId);
   const taken = existingSkus
     .filter((sku) => sku.startsWith(`${prefix}-`))
     .map((sku) => Number(sku.slice(prefix.length + 1)))
@@ -148,22 +165,26 @@ function matchesPublication(product: Product, filter: PublicationFilter): boolea
   return filter === "all" || product.publication === filter;
 }
 
-function matchesQuery(product: Product, query: string): boolean {
+function matchesQuery(product: Product, query: string, categories: readonly ProductCategoryOption[]): boolean {
   const needle = normalizeText(query);
   if (!needle) return true;
-  const haystack = `${product.name} ${getCategoryLabel(product.categoryId) ?? ""} ${product.sku}`;
+  const haystack = `${product.name} ${getCategoryLabel(product.categoryId, categories) ?? ""} ${product.sku}`;
   return normalizeText(haystack).includes(needle);
 }
 
 /** Products matching the search and every select, in catalogue order. */
-export function filterProducts(products: readonly Product[], filters: ProductFilters): Product[] {
+export function filterProducts(
+  products: readonly Product[],
+  filters: ProductFilters,
+  categories: readonly ProductCategoryOption[] = MOCK_CATEGORY_OPTIONS,
+): Product[] {
   return products.filter(
     (product) =>
       matchesPublication(product, filters.publication) &&
       (filters.category === "all" || product.categoryId === filters.category) &&
       (filters.moment === "all" || product.moments.includes(filters.moment)) &&
       (filters.availability === "all" || product.available === (filters.availability === "available")) &&
-      matchesQuery(product, filters.query),
+      matchesQuery(product, filters.query, categories),
   );
 }
 
@@ -175,8 +196,12 @@ export function sortProductsByRelevance(products: readonly Product[]): Product[]
 }
 
 /** Rows of the 07A table. */
-export function getVisibleProducts(products: readonly Product[], filters: ProductFilters): Product[] {
-  return sortProductsByRelevance(filterProducts(products, filters));
+export function getVisibleProducts(
+  products: readonly Product[],
+  filters: ProductFilters,
+  categories: readonly ProductCategoryOption[] = MOCK_CATEGORY_OPTIONS,
+): Product[] {
+  return sortProductsByRelevance(filterProducts(products, filters, categories));
 }
 
 export type ProductMetrics = { published: number; available: number; unavailable: number };
@@ -261,6 +286,13 @@ export function restoreProduct(products: Product[], id: string): Product[] {
 
 export function setProductAvailability(products: Product[], id: string, available: boolean): Product[] {
   return updateProduct(products, id, { available });
+}
+
+/** The list with `product` in place of the one with its id, or appended when it is new. */
+export function upsertProduct(products: Product[], product: Product): Product[] {
+  return products.some((candidate) => candidate.id === product.id)
+    ? products.map((candidate) => (candidate.id === product.id ? product : candidate))
+    : [...products, product];
 }
 
 /** "Result Count" of the 07A footer. */

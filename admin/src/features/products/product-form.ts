@@ -8,7 +8,7 @@ import type {
 } from "@/mocks/service-day";
 import { formatPrice } from "@/shared/lib/format-price";
 import { CONSUMPTION_MOMENTS } from "@/mocks/service-day";
-import { getCategoryLabel, normalizeText } from "./product-catalog";
+import { getCategoryLabel, normalizeText, type ProductCategoryOption } from "./product-catalog";
 
 /** An option row while it is edited: the adjustment stays the typed text. */
 export type OptionDraft = { id: string; name: string; priceDelta: string };
@@ -412,7 +412,7 @@ function toPreviewGroup(group: OptionGroupDraft): PreviewGroup {
 }
 
 /** What the customer would see for this draft (07B "Live Product Preview", 07C). */
-export function getPreviewModel(draft: ProductDraft): PreviewModel {
+export function getPreviewModel(draft: ProductDraft, categories?: readonly ProductCategoryOption[]): PreviewModel {
   const price = parsePriceInput(draft.price) ?? 0;
   const groups = draft.optionGroups
     .map((group) => ({ ...group, options: group.options.filter((option) => option.name.trim()) }))
@@ -430,7 +430,7 @@ export function getPreviewModel(draft: ProductDraft): PreviewModel {
     groups: groups.map(toPreviewGroup),
     optionsSummary: getOptionGroupsSummary(groups),
     addLabel: `Agregar · ${formatPrice(price + preselected)}`,
-    categoryLabel: getCategoryLabel(draft.categoryId) ?? "Sin categoría",
+    categoryLabel: getCategoryLabel(draft.categoryId, categories) ?? "Sin categoría",
     momentsLabel: getMomentsLabel(draft.moments),
     availabilityLabel: draft.available ? "Disponible" : "No disponible",
   };

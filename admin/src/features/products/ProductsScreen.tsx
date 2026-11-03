@@ -1,9 +1,9 @@
 "use client";
 
-import { useCallback, useReducer } from "react";
+import { LoaderCircle, RotateCw, TriangleAlert } from "lucide-react";
 import { PRODUCTS } from "@/mocks/service-day";
 import { useScreenState } from "@/shared/lib/use-screen-state";
-import { saveProductAvailability } from "./product-availability";
+import { Notice } from "@/shared/ui";
 import { CustomerPreview } from "./CustomerPreview";
 import { ProductCatalogTable } from "./ProductCatalogTable";
 import { ProductEditor } from "./ProductEditor";
@@ -19,6 +19,7 @@ import {
   type ProductsAction,
   type ProductsState,
 } from "./products-state";
+import { useProductsCatalog } from "./use-products-catalog";
 
 /**
  * Forced variants: `edit` (07B: the Cappuccino with "Tomar" added and not saved yet), `preview`
@@ -54,36 +55,64 @@ const FORCED_ACTIONS: Record<ForcedState, ProductsAction[]> = {
   ],
 };
 
+/** A forced variant replays its actions over the mock catalogue; the API path starts empty until it loads. */
 function initProductsState(forcedState: ForcedState | null): ProductsState {
-  const state = createProductsState(PRODUCTS);
-  if (!forcedState) return state;
-  return { ...FORCED_ACTIONS[forcedState].reduce(productsReducer, state), notice: null };
+  if (!forcedState) return createProductsState([], { categories: [] });
+  return { ...FORCED_ACTIONS[forcedState].reduce(productsReducer, createProductsState(PRODUCTS)), notice: null };
+}
+
+const PAGE_CLASSES =
+  "flex min-h-[calc(100dvh-var(--topbar-h))] flex-col gap-3 px-4 pt-4 pb-6 lg:h-[calc(100dvh-var(--topbar-h))] lg:min-h-[700px] lg:px-7 lg:pt-[18px] lg:pb-4";
+
+function CatalogPlaceholder({ failed, onRetry }: { failed: boolean; onRetry: () => void }) {
+  return (
+    <div className="flex min-h-[320px] flex-1 items-center justify-center rounded-card bg-surface outline-1 -outline-offset-[0.5px] outline-line">
+      {failed ? (
+        <div className="flex w-full max-w-[420px] flex-col items-center gap-3">
+          <Notice tone="danger" icon={TriangleAlert} title="No se pudieron cargar los productos">
+            Revisá tu conexión e intentá de nuevo.
+          </Notice>
+          <button
+            type="button"
+            onClick={onRetry}
+            className="flex h-10 items-center gap-1.5 rounded-[9px] px-3 text-[12px] font-bold text-brand hover:bg-brand-wash"
+          >
+            <RotateCw size={14} aria-hidden="true" />
+            Reintentar
+          </button>
+        </div>
+      ) : (
+        <p role="status" className="flex items-center gap-2 text-[13px] font-semibold text-muted">
+          <LoaderCircle size={16} aria-hidden="true" className="animate-spin" />
+          Cargando productos…
+        </p>
+      )}
+    </div>
+  );
 }
 
 /**
- * 07 · Productos. Container: owns the catalogue as edited in this session (pure
- * `productsReducer`, seeded from the canonical `PRODUCTS`) and which of the three views is open:
- * the list (07A), the editor (07B) or the customer preview (07C) of the editor's draft. Saving,
- * duplicating, archiving and the availability switches only change the in-memory list; a switch
- * goes through a simulated save (`saveProductAvailability`) before it commits or reverts.
+ * 07 · Productos. Container: `useProductsCatalog` owns the catalogue (pure `productsReducer`)
+ * loaded from the API, and which of the three views is open: the list (07A), the editor (07B) or
+ * the customer preview (07C) of the editor's draft. Saving, duplicating, archiving, restoring and
+ * the availability switches go through the API and commit the product it answers. The forced
+ * `?state=` variants keep the mock catalogue in memory, so the design states stay reproducible.
  */
 export function ProductsScreen() {
   const forcedState = useScreenState(PRODUCTS_FORCED_STATES);
-  const [state, dispatch] = useReducer(productsReducer, forcedState, initProductsState);
+  const { state, status, retry, onAction: dispatch, changeAvailability } = useProductsCatalog(forcedState !== null, () =>
+    initProductsState(forcedState),
+  );
   const editorView = getEditorView(state);
 
-  const changeAvailability = useCallback(async (id: string, available: boolean) => {
-    dispatch({ type: "start-availability-save", id, available });
-    try {
-      await saveProductAvailability(id, available);
-      dispatch({ type: "finish-availability-save", id, ok: true });
-    } catch {
-      dispatch({ type: "finish-availability-save", id, ok: false });
-    }
-  }, []);
-
   let content;
-  if (state.editor && state.screen === "preview") {
+  if (status !== "ready") {
+    content = (
+      <div className={PAGE_CLASSES}>
+        <CatalogPlaceholder failed={status === "error"} onRetry={retry} />
+      </div>
+    );
+  } else if (state.editor && state.screen === "preview") {
     content = <CustomerPreview state={state} onAction={dispatch} />;
   } else if (state.editor && editorView && state.screen === "editor") {
     content = <ProductEditor editor={state.editor} view={editorView} onAction={dispatch} />;
@@ -92,11 +121,12 @@ export function ProductsScreen() {
     content = (
       // From `lg` the list fills the viewport under the top bar, as in the 1440×900 export; below
       // it the page grows with its cards and scrolls.
-      <div className="flex min-h-[calc(100dvh-var(--topbar-h))] flex-col gap-3 px-4 pt-4 pb-6 lg:h-[calc(100dvh-var(--topbar-h))] lg:min-h-[700px] lg:px-7 lg:pt-[18px] lg:pb-4">
+      <div className={PAGE_CLASSES}>
         <ProductListHeader onCreate={() => dispatch({ type: "open-new" })} />
         <ProductListMetrics metrics={view.metrics} support={view.metricSupport} />
         <ProductListFilters
           filters={state.filters}
+          categoryOptions={view.categoryOptions}
           canClear={view.hasActiveFilters}
           onQueryChange={(query) => dispatch({ type: "set-query", query })}
           onFilterChange={(filter, value) => dispatch(setFilter(filter, value))}

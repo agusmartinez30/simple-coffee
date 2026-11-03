@@ -3,9 +3,12 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { MOMENTS, getMomentById } from "@/mocks/moments";
 import type { Moment } from "@/mocks/types";
-import { ExploreResults, resolveFilterId } from "@/features/explore";
+import { MomentScreen } from "@/features/explore";
 
-/** Every moment is known ahead of time, so all result pages are prerendered. */
+/**
+ * Moments are local definitions, so their pages are prerendered; their products come from the
+ * menu API and load in the browser.
+ */
 export function generateStaticParams() {
   return MOMENTS.map((moment) => ({ moment: moment.id }));
 }
@@ -26,7 +29,7 @@ export default async function ExploreMomentPage({
   // searchParams is request-time data: the prerendered shell shows the default
   // sub-filter, and `?filter=` streams in behind Suspense (Cache Components).
   return (
-    <Suspense fallback={<ExploreResults moment={moment} />}>
+    <Suspense fallback={<MomentScreen moment={moment} />}>
       <MomentResults moment={moment} searchParams={searchParams} />
     </Suspense>
   );
@@ -39,7 +42,5 @@ async function MomentResults({
   moment: Moment;
   searchParams: PageProps<"/explore/[moment]">["searchParams"];
 }) {
-  const initialFilterId = resolveFilterId(moment, (await searchParams).filter);
-  // Keyed so a new `?filter=` on the same moment resets the chip state.
-  return <ExploreResults key={initialFilterId} moment={moment} initialFilterId={initialFilterId} />;
+  return <MomentScreen moment={moment} requestedFilterId={(await searchParams).filter} />;
 }

@@ -5,20 +5,26 @@ import Link from "next/link";
 import { ArrowLeft, Search } from "lucide-react";
 import type { Moment } from "@/mocks/types";
 import { CartFloatingCta } from "@/features/cart";
+import { useMenu } from "@/features/menu/MenuProvider";
 import { BottomDock, BottomNav, FilterChips } from "@/shared/ui";
 import { ProductResults } from "./ProductResults";
-import { getMomentProducts } from "./moment-products";
+import { getMomentFilters, getMomentProducts, resolveFilterId } from "./moment-products";
 
 type ExploreResultsProps = {
   moment: Moment;
-  /** Sub-filter selected on open, e.g. from `?filter=`; defaults to the first filter. */
-  initialFilterId?: string;
+  /** Raw `?filter=` value to open with; invalid or missing values select the first filter. */
+  requestedFilterId?: string | string[];
 };
 
-/** Screen 02B · Explore results for one moment, with sub-filter chips. */
-export function ExploreResults({ moment, initialFilterId }: ExploreResultsProps) {
-  const [filterId, setFilterId] = useState(initialFilterId ?? moment.filters[0]?.id ?? "todos");
-  const products = getMomentProducts(moment, filterId);
+/**
+ * Screen 02B · Explore results for one moment, with sub-filter chips (the menu categories of the
+ * moment). Renders inside `<MenuGate>`, so the menu is loaded.
+ */
+export function ExploreResults({ moment, requestedFilterId }: ExploreResultsProps) {
+  const { menu } = useMenu();
+  const filters = getMomentFilters(menu, moment.id);
+  const [filterId, setFilterId] = useState(() => resolveFilterId(filters, requestedFilterId));
+  const products = getMomentProducts(menu, moment.id, filterId);
 
   return (
     <>
@@ -46,7 +52,7 @@ export function ExploreResults({ moment, initialFilterId }: ExploreResultsProps)
         <FilterChips
           className="mt-[7px]"
           label={`Categorías de ${moment.title.toLowerCase()}`}
-          items={moment.filters}
+          items={filters}
           selected={filterId}
           onSelect={setFilterId}
           weight="semibold"

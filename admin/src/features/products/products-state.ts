@@ -3,6 +3,7 @@ import { formatPrice } from "@/shared/lib/format-price";
 import { paginate } from "@/shared/lib/pagination";
 import {
   DEFAULT_PRODUCT_FILTERS,
+  MOCK_CATEGORY_OPTIONS,
   PRODUCT_LIST_STATUS_LABELS,
   archiveProduct,
   duplicateProduct,
@@ -10,20 +11,33 @@ import {
   formatListSummary,
   formatMomentsLabel,
   formatProductCount,
+  getCategoryFilterOptions,
   getCategoryLabel,
+  getDuplicateName,
   getProductMetrics,
   getProductStatus,
   getVisibleProducts,
   hasActiveFilters,
   restoreProduct,
   setProductAvailability,
+  upsertProduct,
+  type FilterOption,
+  type ProductCategoryOption,
   type ProductFilters,
   type ProductMetrics,
   type ProductStatus,
 } from "./product-catalog";
 import { editorReducer, type EditorAction, type EditorState } from "./product-editor-state";
+import { toProductBody, type ProductBody } from "./products-mapper";
 
-export { getEditorView, type EditorView, type EditorState, type SaveTone } from "./product-editor-state";
+export {
+  getEditorView,
+  getSaveRequest,
+  type EditorView,
+  type EditorState,
+  type SaveRequest,
+  type SaveTone,
+} from "./product-editor-state";
 
 /** `list`: 07A. `editor`: 07B. `preview`: 07C, of the product open in the editor. */
 export type ProductsScreenId = "list" | "editor" | "preview";
@@ -38,8 +52,10 @@ export const PRODUCTS_PAGE_SIZE = 7;
 export type AvailabilitySave = { status: "pending"; available: boolean } | { status: "failed" };
 
 export type ProductsState = {
-  /** The catalogue as edited in this session (in memory only). */
+  /** The catalogue: from the API, or the mock one edited in memory (forced variants). */
   products: Product[];
+  /** Categories of the filters, the editor select and the row labels. */
+  categories: readonly ProductCategoryOption[];
   filters: ProductFilters;
   /** Current list page (1-based); the view clamps it to the available pages. */
   page: number;
@@ -65,11 +81,27 @@ export type ProductsAction =
   /** Commits a value right away (forced variants); the list switches go through the save actions. */
   | { type: "set-availability"; id: string; available: boolean }
   | { type: "start-availability-save"; id: string; available: boolean }
-  | { type: "finish-availability-save"; id: string; ok: boolean }
+  /** `product`: what the API saved; without it the requested value is committed. */
+  | { type: "finish-availability-save"; id: string; ok: boolean; product?: Product }
   | { type: "duplicate"; id: string }
   | { type: "archive"; id: string }
   | { type: "restore"; id: string }
+  /** API answers: the catalogue loaded, and the products the list actions saved. */
+  | { type: "loaded"; products: Product[]; categories: readonly ProductCategoryOption[] }
+  | { type: "duplicated"; sourceId: string; product: Product }
+  | { type: "archived"; product: Product }
+  | { type: "restored"; product: Product }
+  | { type: "product-action-failed"; id: string; action: ProductListOperation }
   | EditorAction;
+
+/** List actions that go through the API. */
+export type ProductListOperation = "duplicate" | "archive" | "restore";
+
+const FAILED_ACTION_VERBS: Record<ProductListOperation, string> = {
+  duplicate: "duplicar",
+  archive: "archivar",
+  restore: "restaurar",
+};
 
 /** `set-filter` action for any filter; TypeScript cannot narrow the generic pair by itself. */
 export function setFilter<K extends FilterKey>(filter: K, value: ProductFilters[K]): ProductsAction {
@@ -82,6 +114,7 @@ export function createProductsState(
 ): ProductsState {
   return {
     products,
+    categories: MOCK_CATEGORY_OPTIONS,
     filters: DEFAULT_PRODUCT_FILTERS,
     page: 1,
     availabilitySaves: {},
@@ -103,6 +136,17 @@ function withoutSave(saves: Record<string, AvailabilitySave>, id: string): Recor
 
 function availabilityNotice(product: Product, available: boolean): string {
   return `${product.name} ahora figura como ${available ? "disponible" : "no disponible"}.`;
+}
+
+/** `POST /catalog/products` body of "Duplicar": an unpublished copy with the next free name, no plural. */
+export function getDuplicateRequest(state: ProductsState, id: string): ProductBody | null {
+  const source = findProduct(state, id);
+  if (!source) return null;
+  const name = getDuplicateName(
+    source.name,
+    state.products.map((product) => product.name),
+  );
+  return toProductBody({ ...source, name, plural: undefined, publication: "draft", archived: false }, null);
 }
 
 export function productsReducer(state: ProductsState, action: ProductsAction): ProductsState {
@@ -147,9 +191,11 @@ export function productsReducer(state: ProductsState, action: ProductsAction): P
       }
       return {
         ...state,
-        products: setProductAvailability(state.products, action.id, save.available),
+        products: action.product
+          ? upsertProduct(state.products, action.product)
+          : setProductAvailability(state.products, action.id, save.available),
         availabilitySaves: withoutSave(state.availabilitySaves, action.id),
-        notice: availabilityNotice(product, save.available),
+        notice: availabilityNotice(product, action.product?.available ?? save.available),
       };
     }
     case "duplicate": {
@@ -174,6 +220,32 @@ export function productsReducer(state: ProductsState, action: ProductsAction): P
         products: restoreProduct(state.products, action.id),
         notice: `${product.name} volvió a la carta como borrador.`,
       };
+    }
+    case "loaded":
+      return { ...state, products: action.products, categories: action.categories, availabilitySaves: {} };
+    case "duplicated": {
+      const index = state.products.findIndex((product) => product.id === action.sourceId);
+      const products =
+        index < 0
+          ? upsertProduct(state.products, action.product)
+          : [...state.products.slice(0, index + 1), action.product, ...state.products.slice(index + 1)];
+      return { ...state, products, notice: `Se creó ${action.product.name} como borrador.` };
+    }
+    case "archived":
+      return {
+        ...state,
+        products: upsertProduct(state.products, action.product),
+        notice: `${action.product.name} se archivó. Podés restaurarlo desde el filtro Archivados.`,
+      };
+    case "restored":
+      return {
+        ...state,
+        products: upsertProduct(state.products, action.product),
+        notice: `${action.product.name} volvió a la carta como borrador.`,
+      };
+    case "product-action-failed": {
+      const name = findProduct(state, action.id)?.name ?? "el producto";
+      return { ...state, notice: `No se pudo ${FAILED_ACTION_VERBS[action.action]} ${name}. Intentá de nuevo.` };
     }
     default:
       return editorReducer(state, action);
@@ -206,6 +278,8 @@ export type ProductRowView = {
 export type ProductsListView = {
   /** Rows of the current page. */
   rows: ProductRowView[];
+  /** Options of the "Categoría" filter. */
+  categoryOptions: FilterOption<ProductFilters["category"]>[];
   /** Metric cards count the whole catalogue, not only the filtered rows. */
   metrics: ProductMetrics;
   /** "Supporting" line under each metric. */
@@ -222,11 +296,15 @@ export type ProductsListView = {
   empty: boolean;
 };
 
-function toRow(product: Product, save: AvailabilitySave | undefined): ProductRowView {
+function toRow(
+  product: Product,
+  save: AvailabilitySave | undefined,
+  categories: readonly ProductCategoryOption[],
+): ProductRowView {
   const status = getProductStatus(product);
   const pending = save?.status === "pending";
   const available = pending ? save.available : product.available;
-  const category = getCategoryLabel(product.categoryId);
+  const category = getCategoryLabel(product.categoryId, categories);
   return {
     id: product.id,
     name: product.name,
@@ -244,12 +322,17 @@ function toRow(product: Product, save: AvailabilitySave | undefined): ProductRow
 }
 
 export function getProductsListView(state: ProductsState): ProductsListView {
-  const current = paginate(getVisibleProducts(state.products, state.filters), state.page, PRODUCTS_PAGE_SIZE);
+  const current = paginate(
+    getVisibleProducts(state.products, state.filters, state.categories),
+    state.page,
+    PRODUCTS_PAGE_SIZE,
+  );
   const metrics = getProductMetrics(state.products);
   const catalogSize = state.products.filter((product) => !product.archived).length;
   const filtered = hasActiveFilters(state.filters);
   return {
-    rows: current.items.map((product) => toRow(product, state.availabilitySaves[product.id])),
+    rows: current.items.map((product) => toRow(product, state.availabilitySaves[product.id], state.categories)),
+    categoryOptions: getCategoryFilterOptions(state.categories),
     metrics,
     metricSupport: {
       published: formatCatalogShare(metrics.published, catalogSize),
