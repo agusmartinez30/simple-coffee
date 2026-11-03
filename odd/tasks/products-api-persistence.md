@@ -81,7 +81,39 @@ Out of scope: image file upload (image stays a URL/path string), menu-organizati
     GREEN. `typecheck`, `lint` clean; `test` 27 files / 194 tests passed.
   - Known gaps: categories without menu products are still listed (the web can hide empty ones);
     web category/moment ids differ from the API ones — T4 maps them; no caching headers.
-- [ ] T3 — Admin: products screen through the API (route: delegated writer; trigger: 2+ non-trivial files)
+  - Review: T1+T2 slice medium, `slice_budget_reached` (465 lines). Preflight STATUS blocked on an
+    undocumented `intended_untracked_selection` JSON (untracked `web/exports/*`, `.codegraph/`).
+    2026-11-03: user disabled RDD for this clone (`review mode disable --scope clone`); delivery
+    follows ordinary repository policy (`disabled/unmanaged`). Parent spot check: api test 194 OK.
+- [x] T3 — Admin: products screen through the API (route: delegated writer; trigger: 2+ non-trivial files)
+  - Built: `products-api.ts` (typed client like `orders-api.ts`: `/api/catalog/...`,
+    `credentials: "same-origin"`, `Result` with invalid/conflict/not-found/unauthorized/network/
+    unknown) for list (`?includeArchived=true`), categories, create, update, availability PATCH,
+    archive, restore. `products-mapper.ts`: API → admin `Product` (`position` → `commercialRank`,
+    `plural`/`image`/`max`/`defaultOptionId` null → unset, single groups drop `max`, unknown
+    moments dropped), categories → `{ id, label }` by position, admin `Product` → body (`max`
+    null on single groups, `defaultOption` by NAME, ids only for groups/options the saved product
+    has, no sku), 400 issues → editor `ProductFormErrors` (fields, group title/max, option
+    name/priceDelta by draft index). Reducer stays pure: new `loaded`, `save-started`/
+    `save-succeeded`/`save-failed`, `duplicated`/`archived`/`restored`/`product-action-failed`,
+    `finish-availability-save` with the API product; `getSaveRequest` / `getDuplicateRequest`
+    build the bodies. `use-products-catalog.ts` holds the async (load, retry, save, list actions,
+    availability; 401 → `sessionStore.signOut()`). The container shows "Cargando productos…" and
+    "No se pudieron cargar los productos" + "Reintentar"; failed saves show "No se pudo guardar el
+    producto. Intentá de nuevo." in the save bar, API field errors in the form. Categories of
+    filters, editor select, row labels and preview come from `GET /catalog/categories`
+    (`ProductsState.categories`, mock categories by default). `?state=` forced variants stay on
+    the mock catalogue in memory (simulated availability save).
+  - Decision: `ProductCategoryId` widened to `MockProductCategoryId | (string & {})` so API
+    category slugs fit; admin SKU prefix falls back to the first three letters (like the API).
+  - Evidence: RED first (mapper + client suites failed to import; 14 reducer tests failed), then
+    GREEN. `tsc --noEmit`, `lint` clean; `test` 51 files / 564 tests passed; `build` OK.
+  - Known gaps: a locally picked image is a `blob:` URL and is saved as such (no upload, out of
+    scope); `commercialRank` is the API per-category position, so ranks interleave across
+    categories in the list; the "Versión 42" counter stays the mock one (bumped locally); no
+    browser run against a live API here; container wiring has no component test (covered by the
+    reducer/request tests).
+  - Review: RDD disabled for this clone (`disabled/unmanaged`); no review step.
 - [ ] T4 — Web: menu from the public API (route: delegated writer; trigger: 2+ non-trivial files)
 
 ## Acceptance criteria
@@ -95,7 +127,9 @@ Out of scope: image file upload (image stays a URL/path string), menu-organizati
 - Branch `feat/products-api-persistence` created from `main` (`d7e03b7`).
 - T1 done in `8f5636b` (feat(api): store moments, plural and image on products); ~170 authored
   code/test lines.
+- T2 done in `f0cbbcf` (feat(api): add public menu read for the customer app); ~175 authored
+  code/test lines.
 
 ## Next step
 
-T3.
+T4.

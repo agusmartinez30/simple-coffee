@@ -3,7 +3,8 @@
 import clsx from "clsx";
 import { Check, Trash2 } from "lucide-react";
 import { useId, useRef, type ReactNode } from "react";
-import { CONSUMPTION_MOMENTS, PRODUCT_CATEGORIES, type ConsumptionMomentId, type ProductCategoryId } from "@/mocks/service-day";
+import { CONSUMPTION_MOMENTS, type ConsumptionMomentId } from "@/mocks/service-day";
+import type { ProductCategoryOption } from "./product-catalog";
 import type { EditorAction } from "./product-editor-state";
 import { getImageFormatLabel, type ProductDraft, type ProductFormErrors } from "./product-form";
 import { AvailabilitySwitch, ProductImage } from "./ProductTags";
@@ -110,11 +111,16 @@ function MainImageEditor({ image, name, error, onAction }: ImageEditorProps) {
 
 type SectionProps = { draft: ProductDraft; errors: ProductFormErrors; onAction: OnAction };
 
+type GeneralInformationProps = SectionProps & {
+  /** Options of the "Categoría" select. */
+  categories: readonly ProductCategoryOption[];
+};
+
 /**
  * "Información general": image, name, base price, description, category and availability. Below
  * `lg` the image stacks over the fields and the price/availability columns narrow to 140px.
  */
-export function GeneralInformation({ draft, errors, onAction }: SectionProps) {
+export function GeneralInformation({ draft, errors, categories, onAction }: GeneralInformationProps) {
   return (
     <section aria-labelledby="general-information-title" className="flex w-full shrink-0 flex-col gap-3.5">
       <div className="flex w-full items-center justify-between">
@@ -181,14 +187,14 @@ export function GeneralInformation({ draft, errors, onAction }: SectionProps) {
                   {...props}
                   value={draft.categoryId}
                   onChange={(event) =>
-                    onAction({ type: "set-category", categoryId: event.target.value as ProductCategoryId })
+                    onAction({ type: "set-category", categoryId: event.target.value })
                   }
                   className={clsx(props.className, "cursor-pointer")}
                 >
                   <option value="" disabled>
                     Elegí una categoría
                   </option>
-                  {PRODUCT_CATEGORIES.map((category) => (
+                  {categories.map((category) => (
                     <option key={category.id} value={category.id}>
                       {category.label}
                     </option>
