@@ -2,6 +2,7 @@ import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, Put, Query
 import { ZodValidationPipe } from '../../../shared/http/zod-validation.pipe.js';
 import { SessionGuard } from '../../auth/http/session.guard.js';
 import { CreateCategory, DeleteCategory, ListCategories, ReorderCategories, UpdateCategory } from '../application/categories.use-cases.js';
+import { GetMenu, type Menu } from '../application/get-menu.js';
 import { ArchiveProduct, CreateProduct, GetProduct, ListProducts, RestoreProduct, UpdateProduct } from '../application/products.use-cases.js';
 import type { Category } from '../domain/category.js';
 import type { Product } from '../domain/product.js';
@@ -20,6 +21,17 @@ import {
   type ProductListQuery,
   type ProductPatchBody,
 } from './catalog.schemas.js';
+
+/** Public: the customer menu for the web app, no session needed. */
+@Controller('catalog/menu')
+export class CatalogMenuController {
+  constructor(private readonly getMenu: GetMenu) {}
+
+  @Get()
+  get(): Promise<Menu> {
+    return this.getMenu.execute();
+  }
+}
 
 /** Admin categories. Every mutation answers the full list by position. */
 @Controller('catalog/categories')

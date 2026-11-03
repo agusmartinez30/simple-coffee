@@ -194,6 +194,23 @@ describe('catalog HTTP (e2e)', () => {
     await agent.post('/catalog/products/nope/archive').expect(404);
   });
 
+  it('serves the customer menu without a session', async () => {
+    const server = app.getHttpServer();
+    const menu = await request(server).get('/catalog/menu').expect(200);
+    const body = menu.body as { categories: { id: string }[]; products: Record<string, unknown>[] };
+    expect(body.categories.map((category) => category.id)).toEqual(['bebidas', 'cafes']);
+    // Draft Té verde, unavailable Limonada and archived Mocha are left out.
+    expect(body.products.map((product) => product.id)).toEqual(['prod_latte']);
+    expect(Object.keys(body.products[0] ?? {}).sort()).toEqual(
+      ['allowCustomerNotes', 'categoryId', 'description', 'id', 'image', 'moments', 'name', 'optionGroups', 'plural', 'price'].sort(),
+    );
+
+    // A hidden category takes its products off the menu.
+    await agent.patch('/catalog/categories/cafes').send({ visible: false }).expect(200);
+    const hidden = await request(server).get('/catalog/menu').expect(200);
+    expect(hidden.body).toEqual({ categories: [{ id: 'bebidas', name: 'Bebidas', description: '' }], products: [] });
+  });
+
   it('exports the orderable resolution for other modules', async () => {
     const resolutions = await app.get(ResolveOrderableProducts).execute(['prod_latte', 'prod_tea', 'nope']);
     expect(resolutions.map(({ id, orderable, block }) => ({ id, orderable, block }))).toEqual([

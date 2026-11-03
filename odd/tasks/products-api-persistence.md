@@ -56,7 +56,31 @@ Out of scope: image file upload (image stays a URL/path string), menu-organizati
     image accepts any text up to 500 (no URL/path format check); migration not applied to a live
     DB here; `pnpm --filter api` matches nothing (package is `cafe-central-api`, no workspace
     file) — scripts were run inside `api/`.
-- [ ] T2 — API: public menu read for `web/` (route: delegated writer; trigger: 2+ non-trivial files)
+  - Review: medium (migration is executable), under budget (265 lines); pending in the slice with
+    T2. Parent spot check: `pnpm --dir api typecheck` OK.
+- [x] T2 — API: public menu read for `web/` (route: delegated writer; trigger: 2+ non-trivial files)
+  - Built: `GET /catalog/menu` (module-prefixed like the public `GET /tables/qr`), no
+    `SessionGuard`, served by `CatalogMenuController` and the `GetMenu` use case
+    (`application/get-menu.ts`). Answers `{ categories: MenuCategory[]; products: MenuProduct[] }`:
+    visible categories by position as `{ id, name, description }`; products that are published,
+    available, not archived (`orderBlock(product) === null`) and in a visible category, by category
+    position then product position, as `{ id, name, plural, description, price, categoryId, image,
+    moments, allowCustomerNotes, optionGroups }` (groups: `id, title, selection, required, max,
+    defaultOptionId, options[{ id, name, priceDelta }]`). No sku, version, publication, archived
+    or dates.
+  - Decision: unavailable products are left out (not sent with `available: false`): the web
+    `Product` type (`web/src/mocks/types.ts`) and features have no availability / sold-out state.
+    This also matches what `ResolveOrderableProducts` lets customers order.
+  - CORS: `configureApp` (`api/src/app.setup.ts`) enables CORS with `credentials: true` for
+    `CORS_ORIGINS` (`api/src/shared/config/env.ts`, default `http://localhost:3000,http://localhost:3002`).
+    The web origin can call the API directly only if it is listed there. Locally `web/` and
+    `admin/` both run plain `next dev` (port 3000, the second one falls to 3002 while the API holds
+    3001), so both default origins are allowed; in production the web origin must be added to
+    `CORS_ORIGINS`. Not changed here; T4 picks CORS vs a Next rewrite.
+  - Evidence: RED first (`get-menu.spec` failed to import, catalog e2e `/catalog/menu` 404), then
+    GREEN. `typecheck`, `lint` clean; `test` 27 files / 194 tests passed.
+  - Known gaps: categories without menu products are still listed (the web can hide empty ones);
+    web category/moment ids differ from the API ones — T4 maps them; no caching headers.
 - [ ] T3 — Admin: products screen through the API (route: delegated writer; trigger: 2+ non-trivial files)
 - [ ] T4 — Web: menu from the public API (route: delegated writer; trigger: 2+ non-trivial files)
 
@@ -69,7 +93,9 @@ Out of scope: image file upload (image stays a URL/path string), menu-organizati
 ## Progress
 
 - Branch `feat/products-api-persistence` created from `main` (`d7e03b7`).
+- T1 done in `8f5636b` (feat(api): store moments, plural and image on products); ~170 authored
+  code/test lines.
 
 ## Next step
 
-T2.
+T3.
