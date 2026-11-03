@@ -41,9 +41,13 @@ const optionGroupSchema = z.object({
 const productFields = {
   sku: z.string().max(40),
   name: z.string().max(200),
+  plural: z.string().max(200).nullable(),
   description: z.string().max(1000),
   price: z.number(),
   categoryId: z.string().max(100),
+  image: z.string().max(2000).nullable(),
+  /** Moment ids; unknown ones are reported by the domain. */
+  moments: z.array(z.string().max(40)).max(20),
   publication: z.enum(PRODUCT_PUBLICATIONS),
   available: z.boolean(),
   allowCustomerNotes: z.boolean(),

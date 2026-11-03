@@ -7,7 +7,7 @@ import type {
 import { PrismaService } from '../../../shared/prisma/prisma.service.js';
 import type { CatalogRepository, ProductFilter } from '../domain/catalog-repository.js';
 import type { Category } from '../domain/category.js';
-import type { OptionSelection, Product, ProductPublication } from '../domain/product.js';
+import { isProductMoment, type OptionSelection, type Product, type ProductPublication } from '../domain/product.js';
 
 /** Prisma enum values are the uppercase form of the domain identifiers ("draft" ↔ "DRAFT"). */
 const toRow = <Row extends string>(value: string) => value.toUpperCase() as Row;
@@ -24,9 +24,13 @@ function toProduct(row: ProductRow): Product {
     id: row.id,
     sku: row.sku,
     name: row.name,
+    plural: row.plural,
     description: row.description,
     price: row.price,
     categoryId: row.categoryId,
+    image: row.image,
+    // Ids dropped from the domain since the row was saved are ignored.
+    moments: row.moments.filter(isProductMoment),
     publication: fromRow<ProductPublication>(row.publication),
     available: row.available,
     archived: row.archived,

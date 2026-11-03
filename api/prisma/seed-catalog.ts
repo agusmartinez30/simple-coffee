@@ -6,14 +6,15 @@ import {
   toProductDraft,
   type OptionSelection,
   type Product,
+  type ProductMoment,
   type ProductOptionGroup,
   type ProductPublication,
 } from '../src/modules/catalog/domain/product.js';
 
 /**
  * Sample menu from the admin mock (`admin/src/mocks/service-day/catalog.ts`): its nine categories
- * in the 08C display order and its thirteen products with their skus, prices and option groups.
- * Moments and images are left out (the API does not model them). Ids are deterministic
+ * in the 08C display order and its thirteen products with their skus, prices, plurals, photos,
+ * moments and option groups. Category and moment images are left out. Ids are deterministic
  * (`prd_cappuccino`, `opg_cappuccino_tamano`, `opt_cappuccino_tamano_mediano`) so the seed
  * always describes the same rows.
  */
@@ -76,9 +77,13 @@ type ProductSeed = {
   /** The mock's `commercialRank`; the position is the rank order within the category. */
   rank: number;
   name: string;
+  plural?: string;
   price: number;
   categoryId: string;
   description: string;
+  /** File name under `/images/products/` (without `.webp`); none when the mock has no photo. */
+  photo?: string;
+  moments: ProductMoment[];
   publication?: ProductPublication;
   available?: boolean;
   optionGroups?: GroupSeed[];
@@ -93,6 +98,8 @@ const PRODUCT_SEEDS: ProductSeed[] = [
     price: 4600,
     categoryId: 'cafes',
     description: 'Espresso intenso con leche vaporizada y espuma cremosa.',
+    photo: 'cappuccino',
+    moments: ['desayunar', 'merendar'],
     optionGroups: [sizeGroup(COFFEE_SIZES, 'Mediano'), extrasGroup([SHOT_EXTRA, PLANT_MILK, CINNAMON])],
   },
   {
@@ -103,6 +110,8 @@ const PRODUCT_SEEDS: ProductSeed[] = [
     price: 5200,
     categoryId: 'cafes',
     description: 'Doble espresso con leche vaporizada y espuma, en taza grande.',
+    photo: 'cappuccino',
+    moments: ['desayunar', 'merendar'],
     optionGroups: [extrasGroup([SHOT_EXTRA, PLANT_MILK])],
   },
   {
@@ -113,6 +122,8 @@ const PRODUCT_SEEDS: ProductSeed[] = [
     price: 4200,
     categoryId: 'cafes',
     description: 'Espresso suave con mucha leche y una capa fina de espuma.',
+    photo: 'cappuccino',
+    moments: ['desayunar', 'merendar', 'tomar'],
     optionGroups: [extrasGroup([PLANT_MILK])],
   },
   {
@@ -123,6 +134,8 @@ const PRODUCT_SEEDS: ProductSeed[] = [
     price: 3800,
     categoryId: 'cafes',
     description: 'Espresso con leche caliente, servido en taza.',
+    photo: 'cappuccino',
+    moments: ['desayunar', 'merendar'],
   },
   {
     slug: 'jugo-naranja',
@@ -132,24 +145,32 @@ const PRODUCT_SEEDS: ProductSeed[] = [
     price: 5100,
     categoryId: 'bebidas',
     description: 'Naranjas exprimidas en el momento.',
+    photo: 'combo-central',
+    moments: ['desayunar', 'tomar'],
   },
   {
     slug: 'medialuna',
     sku: 'PAN-002',
     rank: 6,
     name: 'Medialuna',
+    plural: 'Medialunas',
     price: 3900,
     categoryId: 'panaderia',
     description: 'Medialunas de manteca recién horneadas.',
+    photo: 'medialunas',
+    moments: ['desayunar', 'merendar'],
   },
   {
     slug: 'tostado-clasico',
     sku: 'TOS-011',
     rank: 7,
     name: 'Tostado clásico',
+    plural: 'Tostados clásicos',
     price: 7200,
     categoryId: 'tostados',
     description: 'Pan de miga tostado con jamón cocido y queso.',
+    photo: 'tostado-jamon-queso',
+    moments: ['merendar', 'cenar'],
   },
   {
     slug: 'tostado-jamon-queso',
@@ -159,6 +180,8 @@ const PRODUCT_SEEDS: ProductSeed[] = [
     price: 6900,
     categoryId: 'tostados',
     description: 'Pan de campo con jamón cocido y queso fundido.',
+    photo: 'tostado-jamon-queso',
+    moments: ['merendar', 'cenar'],
   },
   {
     slug: 'toston-palta',
@@ -168,6 +191,8 @@ const PRODUCT_SEEDS: ProductSeed[] = [
     price: 7500,
     categoryId: 'tostadas',
     description: 'Pan de masa madre con palta, tomate y semillas.',
+    photo: 'tostadas-de-campo',
+    moments: ['desayunar', 'merendar'],
   },
   {
     slug: 'sandwich-pollo',
@@ -177,6 +202,8 @@ const PRODUCT_SEEDS: ProductSeed[] = [
     price: 8900,
     categoryId: 'sandwiches',
     description: 'Pollo grillado, lechuga, tomate y mayonesa de la casa.',
+    photo: 'tostado-jamon-queso',
+    moments: ['cenar'],
   },
   {
     slug: 'limonada',
@@ -186,6 +213,7 @@ const PRODUCT_SEEDS: ProductSeed[] = [
     price: 3600,
     categoryId: 'bebidas',
     description: 'Limonada con menta y jengibre.',
+    moments: ['tomar'],
   },
   {
     slug: 'hamburguesa-clasica',
@@ -195,6 +223,7 @@ const PRODUCT_SEEDS: ProductSeed[] = [
     price: 12500,
     categoryId: 'hamburguesas',
     description: 'Medallón de carne, cheddar, lechuga y tomate, con papas fritas.',
+    moments: ['cenar'],
     available: false,
   },
   {
@@ -205,6 +234,7 @@ const PRODUCT_SEEDS: ProductSeed[] = [
     price: 6800,
     categoryId: 'postres',
     description: 'Cheesecake de frutos rojos sobre base de galletitas.',
+    moments: ['merendar'],
     publication: 'draft',
   },
 ];
@@ -237,9 +267,12 @@ export function seedProducts(): Product[] {
       id: `prd_${seed.slug}`,
       sku: seed.sku,
       name: seed.name,
+      plural: seed.plural ?? null,
       description: seed.description,
       price: seed.price,
       categoryId: seed.categoryId,
+      image: seed.photo === undefined ? null : `/images/products/${seed.photo}.webp`,
+      moments: seed.moments,
       publication: seed.publication ?? 'published',
       available: seed.available ?? true,
       archived: false,
@@ -306,9 +339,12 @@ export async function seedCatalog(prisma: PrismaClient): Promise<boolean> {
           id: product.id,
           sku: product.sku,
           name: product.name,
+          plural: product.plural,
           description: product.description,
           price: product.price,
           categoryId: product.categoryId,
+          image: product.image,
+          moments: product.moments,
           publication: toRow(product.publication),
           available: product.available,
           archived: product.archived,

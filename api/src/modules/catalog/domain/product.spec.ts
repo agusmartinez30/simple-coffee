@@ -1,9 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import {
+  assembleProduct,
   createProductSku,
+  normalizeProductDraft,
   orderBlock,
   productDraftIssues,
   skuPrefixFor,
+  toProductDraft,
   type OptionGroupDraft,
   type Product,
   type ProductDraft,
@@ -30,11 +33,15 @@ const draft: ProductDraft = {
   publication: 'published',
   available: true,
   allowCustomerNotes: true,
+  moments: ['desayunar', 'merendar'],
+  plural: null,
+  image: '/images/products/latte.webp',
   optionGroups: [milk],
 };
 
 const existing: Product = {
   ...draft,
+  moments: ['desayunar', 'merendar'],
   id: 'prod_1',
   sku: 'CAF-001',
   archived: false,
@@ -75,6 +82,34 @@ describe('product rules', () => {
     ]);
     expect(productDraftIssues({ ...draft, price: 12.5 }, context)).toEqual([{ path: 'price', code: 'out_of_range' }]);
     expect(productDraftIssues({ ...draft, name: 'Latte' }, { ...context, others: [{ ...existing, archived: true }] })).toEqual([]);
+  });
+
+  it('checks moments, plural and image', () => {
+    const issues = productDraftIssues(
+      { ...draft, plural: 'x'.repeat(61), image: `/${'x'.repeat(500)}`, moments: ['desayunar', 'brunch', 'desayunar'] },
+      context,
+    );
+    expect(issues).toEqual([
+      { path: 'plural', code: 'too_long' },
+      { path: 'image', code: 'too_long' },
+      { path: 'moments.1', code: 'unknown_moment' },
+      { path: 'moments.2', code: 'duplicate' },
+    ]);
+    expect(productDraftIssues({ ...draft, plural: 'Lattes', image: null, moments: [] }, context)).toEqual([]);
+  });
+
+  it('normalizes plural and image, blank ones to null', () => {
+    const normalized = normalizeProductDraft({ ...draft, plural: '  Medialunas ', image: '  ' });
+    expect(normalized).toMatchObject({ plural: 'Medialunas', image: null });
+    expect(normalizeProductDraft({ ...draft, plural: ' ', image: ' /images/a.webp ' })).toMatchObject({ plural: null, image: '/images/a.webp' });
+  });
+
+  it('keeps moments, plural and image through assemble and back to a draft', () => {
+    const identity = { id: 'prod_9', sku: 'CAF-009', archived: false, position: 1, version: 1, createdAt: at, updatedAt: at };
+    let counter = 0;
+    const product = assembleProduct({ ...draft, plural: 'Lattes' }, identity, () => `id_${++counter}`);
+    expect(product).toMatchObject({ moments: ['desayunar', 'merendar'], plural: 'Lattes', image: '/images/products/latte.webp' });
+    expect(toProductDraft(product)).toMatchObject({ moments: ['desayunar', 'merendar'], plural: 'Lattes', image: '/images/products/latte.webp' });
   });
 
   it('checks the sku format and uniqueness, archived products included', () => {

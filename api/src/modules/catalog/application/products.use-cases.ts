@@ -44,14 +44,27 @@ async function nextPosition(deps: CatalogDeps, categoryId: string): Promise<numb
 
 export type NewProduct = Pick<ProductDraft, 'name' | 'price' | 'categoryId'> & Partial<ProductDraft>;
 
-/** Adds a product at the end of its category, as a draft unless told otherwise; the sku is generated when not given. */
+/**
+ * Adds a product at the end of its category, as a draft unless told otherwise, with no moments,
+ * plural or image unless given; the sku is generated when not given.
+ */
 export class CreateProduct {
   constructor(private readonly deps: CatalogDeps) {}
 
   async execute(input: NewProduct): Promise<Product> {
     const draft = await validDraft(
       this.deps,
-      { description: '', publication: 'draft', available: true, allowCustomerNotes: false, optionGroups: [], ...input },
+      {
+        description: '',
+        plural: null,
+        image: null,
+        moments: [],
+        publication: 'draft',
+        available: true,
+        allowCustomerNotes: false,
+        optionGroups: [],
+        ...input,
+      },
       null,
     );
     const skus = (await this.deps.catalog.listProducts({ includeArchived: true })).map((product) => product.sku);
