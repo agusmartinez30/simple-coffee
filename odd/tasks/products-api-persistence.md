@@ -175,6 +175,9 @@ Out of scope: image file upload (image stays a URL/path string), menu-organizati
 - T3 done in `e62ec5f` (feat(admin): persist products through the catalog API); ~1520 changed
   lines (about 610 test lines, 32 doc lines); over the 400 budget: the client, mapper, reducer
   actions and container are one work unit.
+- T4 done in `bd8367f` (feat(web): load the menu from the catalog API); ~1400 changed lines
+  (1128 insertions / 268 deletions incl. ~330 test lines and the doc entry); over the 400 budget:
+  client, mapper, provider and every menu consumer switch together.
 
 ## Next step
 
