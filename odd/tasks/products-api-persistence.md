@@ -40,6 +40,9 @@ Out of scope: image file upload (image stays a URL/path string), menu-organizati
 
 - Strategy: `ask-on-risk`. Forecast: ~1200 authored lines across 4 tasks → above 400; chain
   strategy to ask before the second slice.
+- 2026-11-03: user chose chain strategy `feature-branch-chain`. Slices: S1 API (T1 `8f5636b`,
+  T2 `f0cbbcf`), S2 admin (T3 `e62ec5f`), S3 web (T4). PRs target a feature integration branch,
+  which merges to `main` once; push/PR creation stays with the user.
 
 ## Tasks
 
@@ -114,7 +117,47 @@ Out of scope: image file upload (image stays a URL/path string), menu-organizati
     browser run against a live API here; container wiring has no component test (covered by the
     reducer/request tests).
   - Review: RDD disabled for this clone (`disabled/unmanaged`); no review step.
-- [ ] T4 — Web: menu from the public API (route: delegated writer; trigger: 2+ non-trivial files)
+- [x] T4 — Web: menu from the public API (route: delegated writer; trigger: 2+ non-trivial files)
+  - Built: `features/menu/menu-api.ts` (typed client like `table-access-api.ts`:
+    `GET /api/catalog/menu`, `cache: "no-store"`, body shape check, `{ ok: false, error: "network" }`
+    on throw / non-2xx / non-JSON / bad body). `menu-mapper.ts` (pure): API → web `Menu`
+    (`mocks/types.ts`): categories `{ id, label: name }` in API order, hiding ones without
+    products; products `slug = id`, `categoryId` → `category`, `plural`/`image` null → unset,
+    image kept only for local `/…` paths (no remote hosts, no `blob:`), `allowCustomerNotes`,
+    option groups `title` → `name` + `title`, `defaultOptionId` → `defaultChoiceId`, options →
+    choices, `priceDisplay: "delta"`; moments `desayunar|merendar|cenar|tomar` →
+    `para-desayunar|para-merendar|para-cenar|para-tomar` as `momentProductIds` (unknown dropped).
+    `MenuProvider` (root layout, outermost) loads the menu in the browser after mount through
+    the existing `/api/*` → `API_URL` rewrite; `useMenu()` gives `{ status, menu, retry }`, and
+    lookups see `EMPTY_MENU` until it is ready. `MenuGate` shows "Cargando el menú" or "No
+    pudimos cargar el menú" + "Reintentar" (no mock fallback). Pricing helpers moved to
+    `features/menu/product-pricing.ts`; cart subtotal, cart lines, quick add, product detail and
+    `buildOrder` take the loaded menu. Moments keep their local copy/imagery; their products and
+    sub-filter chips ("Todos" + the moment's categories) come from the menu. `/product/[id]` and
+    `/explore/categoria/[category]` lost `generateStaticParams` (params read behind Suspense,
+    static titles) and show "… no está disponible" + "Volver a la carta" for unknown ids.
+    `/explore/[moment]` stays prerendered. Products without photo show a sand placeholder
+    (`ProductPhoto`); `allowCustomerNotes: false` hides "Indicaciones especiales".
+  - Decision: client fetch through the existing rewrite (the `table-access` pattern) instead of a
+    server fetch: the cart and table session live in the root layout and need synchronous
+    lookups everywhere, and the build never reaches the API. Mocks stay as fixtures
+    (`MOCK_MENU`) for tests and the seeded table orders.
+  - Env: `API_URL` (server-only, read by `next.config.ts` at `next dev`/`next build`, default
+    `http://localhost:3001`). Local run: `pnpm --dir api db:migrate`, `pnpm --dir api db:seed`,
+    `pnpm --dir api dev` (port 3001), then `pnpm --dir admin dev` and `pnpm --dir web dev` (ports
+    3000/3002, whichever starts first gets 3000; both are in the default `CORS_ORIGINS`); a product
+    created and published in the admin, available, in a visible category, appears in the web
+    after a reload.
+  - Evidence: RED first (`menu-mapper.test` and `menu-api.test` failed to import), then GREEN.
+    `tsc --noEmit`, `lint` clean; `test` 22 files / 167 tests passed; `build` OK with no API
+    running (`/product/[id]`, `/explore/categoria/[category]` partial prerender).
+  - Known gaps: `web/.env.example` not added (writing `.env*` is denied in this environment);
+    page titles no longer name the product/category; the menu is not server-rendered (loading
+    card first); group `max` is not enforced by the web; cart lines saved with old mock ids are
+    dropped from the subtotal/lines (unknown products); photos the admin points to that are not
+    in `web/public` 404; no browser run against a live API here; no component tests for the
+    provider/gate.
+  - Review: RDD disabled for this clone (`disabled/unmanaged`); no review step.
 
 ## Acceptance criteria
 
@@ -129,7 +172,10 @@ Out of scope: image file upload (image stays a URL/path string), menu-organizati
   code/test lines.
 - T2 done in `f0cbbcf` (feat(api): add public menu read for the customer app); ~175 authored
   code/test lines.
+- T3 done in `e62ec5f` (feat(admin): persist products through the catalog API); ~1520 changed
+  lines (about 610 test lines, 32 doc lines); over the 400 budget: the client, mapper, reducer
+  actions and container are one work unit.
 
 ## Next step
 
-T4.
+Open the S3 (web) PR on the feature integration branch (user decision); push stays with the user.

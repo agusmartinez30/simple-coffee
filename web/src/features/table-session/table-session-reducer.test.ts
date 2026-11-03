@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { EMPTY_MENU } from "@/features/menu/menu-mapper";
+import { MOCK_MENU } from "@/mocks/menu";
 import { SEED_ORDERS } from "@/mocks/table";
 import {
   buildOrder,
@@ -47,7 +49,7 @@ describe("getNextOrderNumber", () => {
 
 describe("buildOrder", () => {
   it("creates an order with menu prices, trimmed name and note", () => {
-    const result = buildOrder(initialSession, input);
+    const result = buildOrder(initialSession, input, MOCK_MENU);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.order).toMatchObject({
@@ -82,28 +84,32 @@ describe("buildOrder", () => {
     const result = buildOrder(initialSession, {
       ...input,
       lines: [...input.lines, { productId: "ghost", choiceIds: [], quantity: 1 }],
-    });
+    }, MOCK_MENU);
     expect(result.ok && result.order.lines).toHaveLength(2);
   });
 
   it("rejects a blank customer name", () => {
-    expect(buildOrder(initialSession, { ...input, customerName: "   " })).toEqual({
+    expect(buildOrder(initialSession, { ...input, customerName: "   " }, MOCK_MENU)).toEqual({
       ok: false,
       reason: "missing-name",
     });
   });
 
   it("rejects an order without valid lines", () => {
-    expect(buildOrder(initialSession, { ...input, lines: [] })).toEqual({
+    expect(buildOrder(initialSession, { ...input, lines: [] }, MOCK_MENU)).toEqual({
       ok: false,
       reason: "empty",
     });
+  });
+
+  it("rejects the order while the menu is not loaded (no product can be priced)", () => {
+    expect(buildOrder(initialSession, input, EMPTY_MENU)).toEqual({ ok: false, reason: "empty" });
   });
 });
 
 describe("tableSessionReducer", () => {
   it("appends a placed order, which then counts in the table total", () => {
-    const result = buildOrder(initialSession, input);
+    const result = buildOrder(initialSession, input, MOCK_MENU);
     if (!result.ok) throw new Error("expected a valid order");
     const state = tableSessionReducer(initialSession, { type: "addOrder", order: result.order });
     expect(state.orders).toHaveLength(2);

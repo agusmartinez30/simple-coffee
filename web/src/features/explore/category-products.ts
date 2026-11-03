@@ -1,12 +1,11 @@
-import { CATEGORIES, PRODUCTS } from "@/mocks/menu";
-import type { Category, Product } from "@/mocks/types";
+import type { Category, Menu, Product } from "@/mocks/types";
 
-/** A real menu category by id; "todos" is a chip, not a category, so it is excluded. */
-export function getCategoryById(id: string): Category | undefined {
-  return CATEGORIES.find((category) => category.id !== "todos" && category.id === id);
+/** A menu category by id (only categories with products are on the menu). */
+export function getCategoryById(menu: Menu, id: string): Category | undefined {
+  return menu.categories.find((category) => category.id === id);
 }
 
 /** Every product of a category, in menu order. */
-export function getCategoryProducts(categoryId: Category["id"]): Product[] {
-  return PRODUCTS.filter((product) => product.category === categoryId);
+export function getCategoryProducts(menu: Menu, categoryId: Category["id"]): Product[] {
+  return menu.products.filter((product) => product.category === categoryId);
 }

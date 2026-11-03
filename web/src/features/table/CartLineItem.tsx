@@ -1,4 +1,4 @@
-import Image from "next/image";
+import { ProductPhoto } from "@/features/menu/ProductPhoto";
 import { Pencil, Trash2 } from "lucide-react";
 import { formatPrice } from "@/shared/lib/format-price";
 import { QuantityStepper } from "@/shared/ui";
@@ -18,7 +18,7 @@ export function CartLineItem({ item, onIncrement, onDecrement, onRemove }: CartL
   return (
     <li className="flex h-28 w-full items-center gap-2.5 rounded-2xl bg-surface p-2.5">
       <div className="relative h-[92px] w-[82px] shrink-0 overflow-hidden rounded-xl">
-        <Image src={item.image} alt="" fill sizes="82px" className="object-cover" />
+        <ProductPhoto src={item.image} alt="" sizes="82px" />
       </div>
       <div className="flex h-full min-w-0 flex-1 flex-col justify-between">
         <div className="flex items-start justify-between gap-2">

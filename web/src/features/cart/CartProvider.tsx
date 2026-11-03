@@ -9,6 +9,7 @@ import {
   useRef,
   type ReactNode,
 } from "react";
+import { useMenu } from "@/features/menu/MenuProvider";
 import type { Ars } from "@/mocks/types";
 import {
   cartReducer,
@@ -61,10 +62,11 @@ function writeStoredCart(value: string) {
 }
 
 /**
- * Cart state for the whole app. It starts empty on the server and on the first client
+ * Cart state for the whole app; prices come from the menu, so it renders inside `<MenuProvider>`. It starts empty on the server and on the first client
  * render (hydration-safe), then restores the persisted cart after mount.
  */
 export function CartProvider({ children }: { children: ReactNode }) {
+  const { menu } = useMenu();
   const [state, dispatch] = useReducer(cartReducer, emptyCart);
   const hasRestored = useRef(false);
   const [hydrated, markHydrated] = useReducer(() => true, false);
@@ -87,7 +89,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     () => ({
       lines: state.lines,
       itemCount: selectItemCount(state),
-      subtotal: selectSubtotal(state),
+      subtotal: selectSubtotal(state, menu),
       hydrated,
       addItem: (input) => dispatch({ type: "add", ...input }),
       increment: (lineId) => dispatch({ type: "increment", lineId }),
@@ -95,7 +97,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       remove: (lineId) => dispatch({ type: "remove", lineId }),
       clear: () => dispatch({ type: "clear" }),
     }),
-    [state, hydrated],
+    [state, hydrated, menu],
   );
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;

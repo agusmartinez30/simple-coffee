@@ -9,6 +9,7 @@ import {
   useRef,
   type ReactNode,
 } from "react";
+import { useMenu } from "@/features/menu/MenuProvider";
 import type { Ars, TableOrder } from "@/mocks/types";
 import type { PaymentMethod } from "./payment-method";
 import {
@@ -59,19 +60,26 @@ function writeStoredSession(value: string) {
 }
 
 /**
- * Orders and the bill request shared by the order and table screens. It starts from the
+ * Orders and the bill request shared by the order and table screens; orders are priced from the
+ * menu, so it renders inside `<MenuProvider>`. It starts from the
  * seed on the server and the first client render (hydration-safe), then restores the
  * persisted session after mount.
  */
 export function TableSessionProvider({ children }: { children: ReactNode }) {
+  const { menu } = useMenu();
   const [state, dispatch] = useReducer(tableSessionReducer, initialSession);
   const restored = useRef(false);
   const stateRef = useRef(state);
+  const menuRef = useRef(menu);
   const [hydrated, markHydrated] = useReducer(() => true, false);
 
   useEffect(() => {
     stateRef.current = state;
   }, [state]);
+
+  useEffect(() => {
+    menuRef.current = menu;
+  }, [menu]);
 
   useEffect(() => {
     const stored = readStoredSession();
@@ -97,7 +105,7 @@ export function TableSessionProvider({ children }: { children: ReactNode }) {
       getOrder: (orderId) => state.orders.find((order) => order.id === orderId),
       placeOrder: (input) => {
         // Read the latest state so two quick submissions never reuse an order number.
-        const result = buildOrder(stateRef.current, input);
+        const result = buildOrder(stateRef.current, input, menuRef.current);
         if (result.ok) {
           stateRef.current = tableSessionReducer(stateRef.current, {
             type: "addOrder",

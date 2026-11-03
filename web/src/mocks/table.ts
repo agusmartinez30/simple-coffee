@@ -1,5 +1,5 @@
 import { describeChoices, getProductById, getUnitPrice } from "./menu";
-import type { Ars, OrderLine, TableInfo, TableOrder } from "./types";
+import type { Ars, OrderLine, Product, TableInfo, TableOrder } from "./types";
 
 /** The café's static data; the table number comes from the validated QR (`features/table-access`). */
 export const TABLE: TableInfo = {
@@ -15,15 +15,15 @@ type LineSeed = {
   note?: string;
 };
 
-/** Builds an order line whose unit price comes from the menu, never hardcoded. */
-export function buildOrderLine({
-  productId,
-  quantity,
-  choiceIds = [],
-  customization,
-  note,
-}: LineSeed): OrderLine {
-  const product = getProductById(productId);
+/**
+ * Builds an order line whose unit price comes from the menu, never hardcoded. `findProduct`
+ * looks products up in the loaded menu; the seed orders below use the fixture menu.
+ */
+export function buildOrderLine(
+  { productId, quantity, choiceIds = [], customization, note }: LineSeed,
+  findProduct: (id: string) => Product | undefined = getProductById,
+): OrderLine {
+  const product = findProduct(productId);
   if (!product) throw new Error(`Unknown product: ${productId}`);
   const derived = describeChoices(product, choiceIds);
   return {

@@ -1,6 +1,6 @@
-import { getProductById } from "@/mocks/menu";
+import { findMenuProduct } from "@/features/menu/menu-mapper";
 import { SEED_ORDERS, buildOrderLine, getTableTotal } from "@/mocks/table";
-import type { Ars, TableOrder } from "@/mocks/types";
+import type { Ars, Menu, TableOrder } from "@/mocks/types";
 import { isPaymentMethod, type PaymentMethod } from "./payment-method";
 
 export type BillRequest = {
@@ -60,19 +60,27 @@ export function getNextOrderNumber(orders: readonly TableOrder[]): string {
 }
 
 /** Validates the checkout input and turns cart lines into an order priced from the menu. */
-export function buildOrder(state: TableSessionState, input: PlaceOrderInput): BuildOrderResult {
+export function buildOrder(
+  state: TableSessionState,
+  input: PlaceOrderInput,
+  menu: Menu,
+): BuildOrderResult {
   const customerName = trimmed(input.customerName);
   if (!customerName) return { ok: false, reason: "missing-name" };
 
+  const findProduct = (id: string) => findMenuProduct(menu, id);
   const lines = input.lines
-    .filter((line) => line.quantity > 0 && getProductById(line.productId))
+    .filter((line) => line.quantity > 0 && findProduct(line.productId))
     .map((line) =>
-      buildOrderLine({
-        productId: line.productId,
-        quantity: line.quantity,
-        choiceIds: [...line.choiceIds],
-        note: trimmed(line.note),
-      }),
+      buildOrderLine(
+        {
+          productId: line.productId,
+          quantity: line.quantity,
+          choiceIds: [...line.choiceIds],
+          note: trimmed(line.note),
+        },
+        findProduct,
+      ),
     );
   if (lines.length === 0) return { ok: false, reason: "empty" };
 

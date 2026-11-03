@@ -1,6 +1,8 @@
 "use client";
 
 import { useCart } from "@/features/cart";
+import { MenuGate } from "@/features/menu/MenuGate";
+import { useMenu } from "@/features/menu/MenuProvider";
 import { formatPrice } from "@/shared/lib/format-price";
 import { formatItemCount } from "@/shared/ui";
 import { CartLineItem } from "./CartLineItem";
@@ -9,7 +11,12 @@ import { getCartLineView, type CartLineView } from "./cart-lines";
 /** "Tu pedido" on screen 07: the cart lines the guest has not sent yet, with their subtotal. */
 export function PendingOrder() {
   const { lines, itemCount, subtotal, increment, decrement, remove } = useCart();
-  const items = lines.map(getCartLineView).filter((item): item is CartLineView => item !== null);
+  const { menu, status } = useMenu();
+  // Cart lines are priced from the menu: show its loading or error state instead of hiding them.
+  if (lines.length > 0 && status !== "ready") return <MenuGate>{null}</MenuGate>;
+  const items = lines
+    .map((line) => getCartLineView(line, menu))
+    .filter((item): item is CartLineView => item !== null);
   if (items.length === 0) return null;
 
   return (
